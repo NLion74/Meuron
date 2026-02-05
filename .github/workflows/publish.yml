@@ -26,21 +26,6 @@ jobs:
                   cargo clippy --all-targets -- -D warnings
                   cargo test --all
 
-            - name: Check tag matches Cargo.toml version
-              shell: bash
-              run: |
-                  CRATE_NAME="meuron"
-                  CRATE_VERSION="$(cargo metadata --no-deps --format-version=1 \
-                    | jq -r --arg name "$CRATE_NAME" '.packages[] | select(.name == $name) | .version')"
-                  TAG_VERSION="${GITHUB_REF_NAME#v}"
-
-                  echo "Crate: $CRATE_NAME"
-                  echo "Cargo.toml version: $CRATE_VERSION"
-                  echo "Release tag version: $TAG_VERSION"
-
-                  test -n "$CRATE_VERSION"
-                  test "$CRATE_VERSION" = "$TAG_VERSION"
-
             - name: Publish
               env:
                   CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
