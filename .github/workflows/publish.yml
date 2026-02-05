@@ -20,8 +20,9 @@ jobs:
             - name: Cache cargo
               uses: Swatinem/rust-cache@v2
 
-            - name: Verify (fmt, clippy, tests)
+            - name: Verify (clippy, tests)
               run: |
+                  cargo fmt --all -- --check
                   cargo clippy --all-targets -- -D warnings
                   cargo test --all
 

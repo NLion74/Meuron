@@ -30,7 +30,7 @@ where
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
         let encoded = postcard::to_allocvec(&self.layers)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
 
         let mut file = File::create(path)?;
         file.write_all(&encoded)?;
@@ -42,8 +42,8 @@ where
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
 
-        let layers: Vec<L> = postcard::from_bytes(&buffer)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        let layers: Vec<L> =
+            postcard::from_bytes(&buffer).map_err(|e| std::io::Error::other(e.to_string()))?;
 
         Ok(NeuralNetwork { layers, cost })
     }
@@ -76,8 +76,8 @@ where
     ) where
         D: RemoveAxis,
     {
+        use rand::rng;
         use rand::seq::SliceRandom;
-        use rand::thread_rng;
 
         let num_samples = inputs.len_of(Axis(0));
 
@@ -86,7 +86,7 @@ where
             let mut batch_count = 0;
 
             let mut indices: Vec<usize> = (0..num_samples).collect();
-            indices.shuffle(&mut thread_rng());
+            indices.shuffle(&mut rng());
 
             for batch_start in (0..num_samples).step_by(batch_size) {
                 let batch_end = (batch_start + batch_size).min(num_samples);
