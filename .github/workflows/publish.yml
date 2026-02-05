@@ -29,10 +29,16 @@ jobs:
             - name: Check tag matches Cargo.toml version
               shell: bash
               run: |
-                  CRATE_VERSION=$(cargo metadata --no-deps --format-version=1 | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' | head -n1)
+                  CRATE_NAME="meuron"
+                  CRATE_VERSION="$(cargo metadata --no-deps --format-version=1 \
+                    | jq -r --arg name "$CRATE_NAME" '.packages[] | select(.name == $name) | .version')"
                   TAG_VERSION="${GITHUB_REF_NAME#v}"
+
+                  echo "Crate: $CRATE_NAME"
                   echo "Cargo.toml version: $CRATE_VERSION"
                   echo "Release tag version: $TAG_VERSION"
+
+                  test -n "$CRATE_VERSION"
                   test "$CRATE_VERSION" = "$TAG_VERSION"
 
             - name: Publish
