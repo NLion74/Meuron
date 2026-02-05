@@ -1,6 +1,6 @@
 # Meuron
 
-A modular rust written library for training simple Neuronal Networks
+A modular rust written library for training simple Neuronal Networks.
 
 ## Features
 
@@ -9,36 +9,69 @@ A modular rust written library for training simple Neuronal Networks
 - Multiple cost functions (MSE, CrossEntropy, BinaryCrossEntropy)
 - Easy to extend with custom layers and activations
 
-## Usage
+## Quick Start
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+meuron = "0.1"
+```
+
+## Basic Example
 
 ```rust
 use meuron::{NeuralNetwork, layer::DenseLayer, activation::Sigmoid, cost::MSE};
+use ndarray::Array2;
 
-let layer1 = DenseLayer::new(784, 128, Sigmoid);
-let layer2 = DenseLayer::new(128, 10, Sigmoid);
+fn main() {
+    // Create a simple 2-layer network
+    let layer1 = DenseLayer::new(784, 128, Sigmoid);
+    let layer2 = DenseLayer::new(128, 10, Sigmoid);
 
-let mut nn = NeuralNetwork::new(
-    vec![Box::new(layer1), Box::new(layer2)],
-    Box::new(MSE),
-);
+    let mut nn = NeuralNetwork::new(
+        vec![layer1, layer2],
+        MSE,
+    );
 
-nn.train(&train_data, &train_labels, 0.01, 10);
+    // Train the network
+    nn.train(&train_data, &train_labels, 0.01, 10, 32);
+
+    // Save the model
+    nn.save("model.bin").unwrap();
+
+    // Load later
+    let loaded_nn = NeuralNetwork::load("model.bin", MSE).unwrap();
+}
 ```
 
-## Example
+### Available Components
 
-Run the MNIST example:
+#### Activations
+
+- ReLU
+- Sigmoid
+- Softmax
+- Tanh
+
+#### Cost Functions
+
+- MSE
+- CrossEntropy
+- BinaryCrossEntropy
+
+#### Layers
+
+- DenseLayer
+
+## Examples
+
+See the examples/ directory:
 
 ```
-cargo run --example mnist
+cargo run --example mnist --release
 ```
 
-## Commands to run:
+## Contributing
 
-```
-# Build the library
-cargo build
-
-# Run MNIST example
-cargo run --example mnist
-```
+Contributions are welcome! Please feel free to submit a Pull Request.

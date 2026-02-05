@@ -1,11 +1,12 @@
 use ndarray::Array2;
+use serde::{Deserialize, Serialize};
 
 pub trait Activation: Clone {
     fn activate(&self, x: &Array2<f32>) -> Array2<f32>;
     fn derivative(&self, x: &Array2<f32>) -> Array2<f32>;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct ReLU;
 
 impl Activation for ReLU {
@@ -18,7 +19,7 @@ impl Activation for ReLU {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Sigmoid;
 
 impl Activation for Sigmoid {
@@ -32,7 +33,7 @@ impl Activation for Sigmoid {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Softmax;
 
 impl Activation for Softmax {
@@ -50,5 +51,21 @@ impl Activation for Softmax {
 
     fn derivative(&self, x: &Array2<f32>) -> Array2<f32> {
         x.mapv(|_| 1.0)
+    }
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct Tanh;
+
+impl Activation for Tanh {
+    fn activate(&self, x: &Array2<f32>) -> Array2<f32> {
+        x.mapv(|v| v.tanh())
+    }
+
+    fn derivative(&self, x: &Array2<f32>) -> Array2<f32> {
+        x.mapv(|v| {
+            let tanh_v = v.tanh();
+            1.0 - tanh_v * tanh_v
+        })
     }
 }
