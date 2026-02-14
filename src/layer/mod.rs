@@ -87,7 +87,7 @@ macro_rules! Layers {
         $crate::layer::seq($layer1, $layer2)
     };
     ($layer1:expr, $layer2:expr, $($rest:expr),+) => {
-        $crate::layer::seq($layer1, layers!($layer2, $($rest),+))
+        $crate::layer::seq($layer1, Layers!($layer2, $($rest),+))
     };
 }
 
