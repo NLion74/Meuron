@@ -1,5 +1,5 @@
-use meuron::NeuralNetwork;
-use meuron::activation::Sigmoid;
+use meuron::{NeuralNetwork, Layers};
+use meuron::activation::{ReLU, Softmax};
 use meuron::cost::MSE;
 use meuron::layer::DenseLayer;
 use ndarray::Array2;
@@ -69,10 +69,10 @@ fn main() {
         let output_size = 10;
         let input_size = 28 * 28;
 
-        let dense_layer_1 = DenseLayer::new(input_size, 128, Sigmoid);
-        let dense_layer_2 = DenseLayer::new(128, output_size, Sigmoid);
+        let dense_layer_1 = DenseLayer::new(input_size, 128, ReLU);
+        let dense_layer_2 = DenseLayer::new(128, output_size, Softmax);
 
-        NeuralNetwork::new(vec![dense_layer_1, dense_layer_2], MSE)
+        NeuralNetwork::new(Layers![dense_layer_1, dense_layer_2], MSE)
     };
 
     let train_images_path = PathBuf::from("./train-images.idx3-ubyte");

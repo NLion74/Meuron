@@ -21,16 +21,16 @@ meuron = "0.1"
 ## Basic Example
 
 ```rust
-use meuron::{NeuralNetwork, layer::DenseLayer, activation::Sigmoid, cost::MSE};
+use meuron::{NeuralNetwork, layer::DenseLayer, activation::ReLU, activation::Softmax, cost::MSE, Layers};
 use ndarray::Array2;
 
 fn main() {
     // Create a simple 2-layer network
-    let layer1 = DenseLayer::new(784, 128, Sigmoid);
-    let layer2 = DenseLayer::new(128, 10, Sigmoid);
+    let layer1 = DenseLayer::new(784, 128, ReLU);
+    let layer2 = DenseLayer::new(128, 10, Softmax);
 
     let mut nn = NeuralNetwork::new(
-        vec![layer1, layer2],
+        Layers![layer1, layer2],
         MSE,
     );
 

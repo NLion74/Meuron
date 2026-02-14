@@ -1,5 +1,10 @@
 use ndarray::{ArrayBase, Dimension, OwnedRepr};
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
+use crate::activation::Activation;
+use ndarray::{Array1, Array2, Axis, Ix2, RemoveAxis};
+use ndarray_rand::RandomExt;
+use ndarray_rand::rand_distr::Uniform;
 
 pub trait Layer {
     type Input: Dimension;
@@ -16,10 +21,75 @@ pub trait Layer {
     ) -> ArrayBase<OwnedRepr<f32>, Self::Input>;
 }
 
-use crate::activation::Activation;
-use ndarray::{Array1, Array2, Axis, Ix2};
-use ndarray_rand::RandomExt;
-use ndarray_rand::rand_distr::Uniform;
+#[derive(Serialize, Deserialize)]
+pub struct EmptyLayer<D> {
+    _phantom: PhantomData<D>,
+}
+
+impl<D> EmptyLayer<D> {
+    pub fn new() -> Self {
+        EmptyLayer {
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<D: Dimension + RemoveAxis> Layer for EmptyLayer<D> {
+    type Input = D;
+    type Output = D;
+
+    fn forward(&mut self, input: &ArrayBase<OwnedRepr<f32>, D>) -> ArrayBase<OwnedRepr<f32>, D> {
+        input.clone()
+    }
+
+    fn backward(&mut self, grad_output: &ArrayBase<OwnedRepr<f32>, D>, _learning_rate: f32) -> ArrayBase<OwnedRepr<f32>, D> {
+        grad_output.clone()
+    }
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct Sequential<L1, L2> {
+    pub layer1: L1,
+    pub layer2: L2,
+}
+
+impl<L1, L2, D> Layer for Sequential<L1, L2>
+where
+    L1: Layer<Input = D, Output = D>,
+    L2: Layer<Input = D, Output = D>,
+    D: Dimension + RemoveAxis,
+{
+    type Input = D;
+    type Output = D;
+
+    fn forward(&mut self, input: &ArrayBase<OwnedRepr<f32>, D>) -> ArrayBase<OwnedRepr<f32>, D> {
+        let out1 = self.layer1.forward(input);
+        self.layer2.forward(&out1)
+    }
+
+    fn backward(&mut self, grad_output: &ArrayBase<OwnedRepr<f32>, D>, learning_rate: f32) -> ArrayBase<OwnedRepr<f32>, D> {
+        let grad2 = self.layer2.backward(grad_output, learning_rate);
+        self.layer1.backward(&grad2, learning_rate)
+    }
+}
+
+pub fn seq<L1, L2>(layer1: L1, layer2: L2) -> Sequential<L1, L2> {
+    Sequential { layer1, layer2 }
+}
+
+#[macro_export]
+macro_rules! Layers {
+    ($layer:expr) => {
+        $layer
+    };
+    ($layer1:expr, $layer2:expr) => {
+        $crate::layer::seq($layer1, $layer2)
+    };
+    ($layer1:expr, $layer2:expr, $($rest:expr),+) => {
+        $crate::layer::seq($layer1, layers!($layer2, $($rest),+))
+    };
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct DenseLayer<A: Activation + Serialize> {

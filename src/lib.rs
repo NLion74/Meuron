@@ -14,7 +14,7 @@ pub struct NeuralNetwork<L, C>
 where
     L: Layer,
 {
-    pub layers: Vec<L>,
+    pub layers: L,
     pub cost: C,
 }
 
@@ -24,7 +24,7 @@ where
     C: Cost<D>,
     D: Dimension + RemoveAxis,
 {
-    pub fn new(layers: Vec<L>, cost: C) -> Self {
+    pub fn new(layers: L, cost: C) -> Self {
         NeuralNetwork { layers, cost }
     }
 
@@ -42,7 +42,7 @@ where
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
 
-        let layers: Vec<L> =
+        let layers: L =
             postcard::from_bytes(&buffer).map_err(|e| std::io::Error::other(e.to_string()))?;
 
         Ok(NeuralNetwork { layers, cost })
@@ -52,18 +52,11 @@ where
         &mut self,
         input: &ArrayBase<OwnedRepr<f32>, D>,
     ) -> ArrayBase<OwnedRepr<f32>, D> {
-        let mut output = input.clone();
-        for layer in &mut self.layers {
-            output = layer.forward(&output);
-        }
-        output
+        self.layers.forward(input)
     }
 
     pub fn backward(&mut self, grad_output: &ArrayBase<OwnedRepr<f32>, D>, learning_rate: f32) {
-        let mut grad_input = grad_output.clone();
-        for layer in self.layers.iter_mut().rev() {
-            grad_input = layer.backward(&grad_input, learning_rate);
-        }
+        self.layers.backward(grad_output, learning_rate);
     }
 
     pub fn train(
