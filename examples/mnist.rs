@@ -1,7 +1,7 @@
-use meuron::{NeuralNetwork, Layers};
+use meuron::{NeuralNetwork, Layers, NetworkType};
 use meuron::activation::{ReLU, Softmax};
 use meuron::cost::CrossEntropy;
-use meuron::layer::{DenseLayer, Sequential};  // ← import Sequential for annotation
+use meuron::layer::{DenseLayer};
 use meuron::metric::classification::accuracy;
 use ndarray::Array2;
 use std::fs::File;
@@ -9,9 +9,10 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 
 type MnistNetwork = NeuralNetwork<
-    Sequential<DenseLayer<ReLU>, DenseLayer<Softmax>>,
+    NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>],
     CrossEntropy,
 >;
+
 
 fn read_u32_from_file(file: &mut File) -> Result<u32, io::Error> {
     let mut buf = [0u8; 4];
@@ -80,14 +81,14 @@ fn main() {
     let (images, labels) = match load_mnist_data(
         PathBuf::from("./train-images.idx3-ubyte"),
         PathBuf::from("./train-labels.idx1-ubyte"),
-    ) {
+    ) { 
         Ok(data) => data,
         Err(e) => { eprintln!("Error loading MNIST training data: {}", e); return; }
     };
 
     println!("Loaded {} training images", images.shape()[0]);
     println!("\nTraining with batch size 32...");
-    nn.train(&images, &labels, 0.01, 10, 32);
+    nn.train(&images, &labels, 0.01, 20, 32);
 
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");

@@ -113,3 +113,12 @@ where
         }
     }
 }
+
+#[macro_export]
+macro_rules! NetworkType {
+    ($l:ty) => { $l };
+    ($l1:ty, $l2:ty) => { $crate::layer::Sequential<$l1, $l2> };
+    ($l1:ty, $l2:ty, $($rest:ty),+) => {
+        $crate::layer::Sequential<$l1, $crate::NetworkType!($l2, $($rest),+)>
+    };
+}
