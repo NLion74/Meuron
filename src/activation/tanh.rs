@@ -1,25 +1,17 @@
-use ndarray::{ArrayBase, Dimension, OwnedRepr};
+use ndarray::{Dimension};
 use serde::{Deserialize, Serialize};
 use crate::activation::Activation;
+use crate::backend::Backend;
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Tanh;
 
-impl Activation for Tanh {
-    fn activate<D: Dimension>(
-        &self,
-        x: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> ArrayBase<OwnedRepr<f32>, D> {
-        x.mapv(|v| v.tanh())
+impl<B: Backend> Activation<B> for Tanh {
+    fn activate<D: Dimension>(&self, x: &B::Tensor<D>) -> B::Tensor<D> {
+        B::mapv(x, |v| v.tanh())
     }
-
-    fn derivative<D: Dimension>(
-        &self,
-        x: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> ArrayBase<OwnedRepr<f32>, D> {
-        x.mapv(|v| {
-            let t = v.tanh();
-            1.0 - t * t
-        })
+    fn derivative<D: Dimension>(&self, x: &B::Tensor<D>) -> B::Tensor<D> {
+        B::mapv(x, |v| { let t = v.tanh(); 1.0 - t * t })
     }
 }
+

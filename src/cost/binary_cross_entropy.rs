@@ -1,30 +1,29 @@
-use ndarray::{ArrayBase, Dimension, OwnedRepr};
+use ndarray::Dimension;
 use serde::{Deserialize, Serialize};
+use crate::backend::Backend;
 use crate::cost::Cost;
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct BinaryCrossEntropy;
 
-impl Cost for BinaryCrossEntropy {
-    fn loss<D: Dimension>(
-        &self,
-        predicted: &ArrayBase<OwnedRepr<f32>, D>,
-        target: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> f32 {
-        let epsilon = 1e-15_f32;
-        let clipped = predicted.mapv(|v| v.clamp(epsilon, 1.0 - epsilon));
-        let loss = -(target * &clipped.mapv(|v| v.ln())
-            + &(1.0 - target) * &(1.0 - &clipped).mapv(|v| v.ln()));
-        loss.mean().unwrap()
+impl<B: Backend> Cost<B> for BinaryCrossEntropy {
+    fn loss<D: Dimension>(&self, predicted: &B::Tensor<D>, target: &B::Tensor<D>) -> f32 {
+        let eps = 1e-15_f32;
+        let c = B::mapv(predicted, |v| v.clamp(eps, 1.0 - eps));
+        let loss = B::add(
+            &B::mul(target, &B::mapv(&c, |v| v.ln())),
+            &B::mul(&B::scalar_sub(1.0, target), &B::mapv(&c, |v| (1.0 - v).ln())),
+        );
+        -B::mean(&loss).unwrap_or(0.0)
     }
 
     fn gradient<D: Dimension>(
         &self,
-        predicted: &ArrayBase<OwnedRepr<f32>, D>,
-        target: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> ArrayBase<OwnedRepr<f32>, D> {
-        let epsilon = 1e-15_f32;
-        let clipped = predicted.mapv(|v| v.clamp(epsilon, 1.0 - epsilon));
-        (&clipped - target) / (&clipped * &(1.0 - &clipped))
+        predicted: &B::Tensor<D>,
+        target: &B::Tensor<D>,
+    ) -> B::Tensor<D> {
+        let eps = 1e-15_f32;
+        let c = B::mapv(predicted, |v| v.clamp(eps, 1.0 - eps));
+        B::div(&B::sub(&c, target), &B::mul(&c, &B::scalar_sub(1.0, &c)))
     }
 }

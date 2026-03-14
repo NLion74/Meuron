@@ -1,6 +1,6 @@
 # Meuron
 
-A modular rust written library for training simple Neuronal Networks.
+A modular rust written library for training simple Neuronal Networks. Mostly created for fun and personal educational purposes
 
 ## Features
 

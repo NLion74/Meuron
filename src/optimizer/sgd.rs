@@ -1,22 +1,16 @@
-use ndarray::{ArrayBase, Dimension, OwnedRepr};
+use ndarray::Dimension;
+use crate::backend::Backend;
 use crate::optimizer::Optimizer;
 
-pub struct SGD {
-    pub learning_rate: f32,
-}
+pub struct SGD { pub learning_rate: f32 }
 
 impl SGD {
-    pub fn new(learning_rate: f32) -> Self {
-        SGD { learning_rate }
-    }
+    pub fn new(learning_rate: f32) -> Self { SGD { learning_rate } }
 }
 
-impl Optimizer for SGD {
-    fn update_param<D: Dimension>(
-        &mut self,
-        param: &mut ArrayBase<OwnedRepr<f32>, D>,
-        grad: &ArrayBase<OwnedRepr<f32>, D>,
-    ) {
-        *param -= &(self.learning_rate * grad);
+impl<B: Backend> Optimizer<B> for SGD {
+    fn update_param<D: Dimension>(&mut self, param: &mut B::Tensor<D>, grad: &B::Tensor<D>) {
+        let updated = B::sub(param, &B::scale(grad, self.learning_rate));
+        B::assign(param, updated);
     }
 }

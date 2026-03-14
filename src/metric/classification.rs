@@ -1,46 +1,34 @@
 use ndarray::{ArrayBase, Axis, Ix2, OwnedRepr};
+use serde::{Deserialize, Serialize};
+use crate::backend::NdarrayBackend;
 use crate::cost::Cost;
 use crate::layer::Layer;
 use crate::NeuralNetwork;
 
 pub fn accuracy<L, C>(
-    network: &mut NeuralNetwork<L, C>,
+    network: &mut NeuralNetwork<L, C, NdarrayBackend>,
     test_data: &ArrayBase<OwnedRepr<f32>, Ix2>,
     test_labels: &ArrayBase<OwnedRepr<f32>, Ix2>,
 ) -> f32
 where
-    L: Layer<Input = Ix2, Output = Ix2> + serde::Serialize + for<'de> serde::Deserialize<'de>,
-    C: Cost,
+    L: Layer<NdarrayBackend, Input = Ix2, Output = Ix2> + Serialize + for<'de> Deserialize<'de>,
+    C: Cost<NdarrayBackend>,
 {
     let predictions = network.forward(test_data);
 
-    assert_eq!(
-        predictions.shape(),
-        test_labels.shape(),
-        "Predictions and labels must have the same shape"
-    );
+    assert_eq!(predictions.shape(), test_labels.shape(), "shape mismatch");
 
-    let predicted_classes = predictions.map_axis(Axis(1), |row| {
-        row.iter()
-            .enumerate()
+    let argmax = |row: ndarray::ArrayView1<f32>| {
+        row.iter().enumerate()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(idx, _)| idx)
-            .unwrap()
-    });
+            .map(|(i, _)| i).unwrap()
+    };
 
-    let target_classes = test_labels.map_axis(Axis(1), |row| {
-        row.iter()
-            .enumerate()
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(idx, _)| idx)
-            .unwrap()
-    });
+    let pred_classes = predictions.map_axis(Axis(1), argmax);
+    let true_classes = test_labels.map_axis(Axis(1), argmax);
 
-    let correct = predicted_classes
-        .iter()
-        .zip(target_classes.iter())
-        .filter(|&(pred, target)| pred == target)
-        .count();
+    let correct = pred_classes.iter().zip(true_classes.iter())
+        .filter(|&(p, t)| p == t).count();
 
     correct as f32 / predictions.len_of(Axis(0)) as f32
 }

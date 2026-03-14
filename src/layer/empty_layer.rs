@@ -1,28 +1,29 @@
-use ndarray::{ArrayBase, Dimension, OwnedRepr};
+use ndarray::Dimension;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
+use crate::backend::{Backend, NdarrayBackend};
 use crate::layer::Layer;
 
 #[derive(Serialize, Deserialize)]
-pub struct EmptyLayer<D> {
-    _phantom: PhantomData<D>,
+pub struct EmptyLayer<D, B: Backend = NdarrayBackend> {
+    _phantom: PhantomData<(D, B)>,
 }
 
-impl<D> EmptyLayer<D> {
+impl<D, B: Backend> EmptyLayer<D, B> {
     pub fn new() -> Self {
         EmptyLayer { _phantom: PhantomData }
     }
 }
 
-impl<D: Dimension> Layer for EmptyLayer<D> {
+impl<D: Dimension, B: Backend> Layer<B> for EmptyLayer<D, B> {
     type Input = D;
     type Output = D;
 
-    fn forward(&mut self, input: &ArrayBase<OwnedRepr<f32>, D>) -> ArrayBase<OwnedRepr<f32>, D> {
+    fn forward(&mut self, input: &B::Tensor<D>) -> B::Tensor<D> {
         input.clone()
     }
 
-    fn backward(&mut self, grad_output: &ArrayBase<OwnedRepr<f32>, D>) -> ArrayBase<OwnedRepr<f32>, D> {
+    fn backward(&mut self, grad_output: &B::Tensor<D>) -> B::Tensor<D> {
         grad_output.clone()
     }
 }

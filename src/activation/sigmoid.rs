@@ -1,23 +1,19 @@
-use ndarray::{ArrayBase, Dimension, OwnedRepr};
+use ndarray::Dimension;
 use serde::{Deserialize, Serialize};
 use crate::activation::Activation;
+use crate::backend::Backend;
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Sigmoid;
 
-impl Activation for Sigmoid {
-    fn activate<D: Dimension>(
-        &self,
-        x: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> ArrayBase<OwnedRepr<f32>, D> {
-        x.mapv(|v| 1.0 / (1.0 + (-v).exp()))
+impl<B: Backend> Activation<B> for Sigmoid {
+    fn activate<D: Dimension>(&self, x: &B::Tensor<D>) -> B::Tensor<D> {
+        B::mapv(x, |v| 1.0 / (1.0 + (-v).exp()))
     }
 
-    fn derivative<D: Dimension>(
-        &self,
-        x: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> ArrayBase<OwnedRepr<f32>, D> {
-        let s = self.activate(x);
-        &s * &(1.0 - &s)
+    fn derivative<D: Dimension>(&self, x: &B::Tensor<D>) -> B::Tensor<D> {
+        let s = B::mapv(x, |v| 1.0 / (1.0 + (-v).exp()));
+        B::mul(&s, &B::scalar_sub(1.0, &s))
     }
 }
+    
