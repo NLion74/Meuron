@@ -4,6 +4,7 @@ pub mod empty_layer;
 pub use dense_layer::DenseLayer;
 pub use empty_layer::EmptyLayer;
 
+use crate::optimizer::Optimizer;
 use ndarray::{ArrayBase, Dimension, OwnedRepr};
 use serde::{Deserialize, Serialize};
 
@@ -19,8 +20,9 @@ pub trait Layer {
     fn backward(
         &mut self,
         grad_output: &ArrayBase<OwnedRepr<f32>, Self::Output>,
-        learning_rate: f32,
     ) -> ArrayBase<OwnedRepr<f32>, Self::Input>;
+
+    fn update<O: Optimizer>(&mut self, _optimizer: &mut O) {}
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,10 +53,14 @@ where
     fn backward(
         &mut self,
         grad_output: &ArrayBase<OwnedRepr<f32>, D3>,
-        learning_rate: f32,
     ) -> ArrayBase<OwnedRepr<f32>, D1> {
-        let grad = self.layer2.backward(grad_output, learning_rate);
-        self.layer1.backward(&grad, learning_rate)
+        let grad = self.layer2.backward(grad_output);
+        self.layer1.backward(&grad)
+    }
+
+    fn update<O: Optimizer>(&mut self, optimizer: &mut O) {
+        self.layer1.update(optimizer);
+        self.layer2.update(optimizer);
     }
 }
 
@@ -64,9 +70,7 @@ pub fn seq<L1, L2>(layer1: L1, layer2: L2) -> Sequential<L1, L2> {
 
 #[macro_export]
 macro_rules! Layers {
-    ($layer:expr) => {
-        $layer
-    };
+    ($layer:expr) => { $layer };
     ($layer1:expr, $layer2:expr) => {
         $crate::layer::seq($layer1, $layer2)
     };

@@ -4,6 +4,7 @@ use ndarray_rand::rand_distr::Uniform;
 use serde::{Deserialize, Serialize};
 use crate::activation::Activation;
 use crate::layer::Layer;
+use crate::optimizer::Optimizer;
 
 #[derive(Serialize, Deserialize)]
 pub struct DenseLayer<A: Activation + Serialize> {
@@ -14,6 +15,10 @@ pub struct DenseLayer<A: Activation + Serialize> {
     last_input: Option<Array2<f32>>,
     #[serde(skip)]
     last_z: Option<Array2<f32>>,
+    #[serde(skip)]
+    grad_weights: Option<Array2<f32>>,
+    #[serde(skip)]
+    grad_biases: Option<Array1<f32>>,
 }
 
 impl<A: Activation + Serialize> DenseLayer<A> {
@@ -28,6 +33,8 @@ impl<A: Activation + Serialize> DenseLayer<A> {
             activation,
             last_input: None,
             last_z: None,
+            grad_weights: None,
+            grad_biases: None,
         }
     }
 }
@@ -43,18 +50,22 @@ impl<A: Activation + Serialize> Layer for DenseLayer<A> {
         self.activation.activate(&z)
     }
 
-    fn backward(&mut self, grad_output: &Array2<f32>, learning_rate: f32) -> Array2<f32> {
-        let last_z = self.last_z.as_ref().expect("forward must be called first");
-        let last_input = self.last_input.as_ref().expect("forward must be called first");
+    fn backward(&mut self, grad_output: &Array2<f32>) -> Array2<f32> {
+        let last_z = self.last_z.as_ref().expect("forward must be called before backward");
+        let last_input = self.last_input.as_ref().expect("forward must be called before backward");
 
         let grad_z = self.activation.vjp(last_z, grad_output);
-        let grad_weights = last_input.t().dot(&grad_z);
-        let grad_biases = grad_z.sum_axis(Axis(0));
-        let grad_input = grad_z.dot(&self.weights.t());
 
-        self.weights = &self.weights - &(learning_rate * &grad_weights);
-        self.biases = &self.biases - &(learning_rate * &grad_biases);
+        self.grad_weights = Some(last_input.t().dot(&grad_z));
+        self.grad_biases = Some(grad_z.sum_axis(Axis(0)));
 
-        grad_input
+        grad_z.dot(&self.weights.t())
+    }
+
+    fn update<O: Optimizer>(&mut self, optimizer: &mut O) {
+        if let (Some(gw), Some(gb)) = (self.grad_weights.take(), self.grad_biases.take()) {
+            optimizer.update_param(&mut self.weights, &gw);
+            optimizer.update_param(&mut self.biases, &gb);
+        }
     }
 }

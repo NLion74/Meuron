@@ -18,18 +18,11 @@ impl<D: Dimension> Layer for EmptyLayer<D> {
     type Input = D;
     type Output = D;
 
-    fn forward(
-        &mut self,
-        input: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> ArrayBase<OwnedRepr<f32>, D> {
+    fn forward(&mut self, input: &ArrayBase<OwnedRepr<f32>, D>) -> ArrayBase<OwnedRepr<f32>, D> {
         input.clone()
     }
 
-    fn backward(
-        &mut self,
-        grad_output: &ArrayBase<OwnedRepr<f32>, D>,
-        _learning_rate: f32,
-    ) -> ArrayBase<OwnedRepr<f32>, D> {
+    fn backward(&mut self, grad_output: &ArrayBase<OwnedRepr<f32>, D>) -> ArrayBase<OwnedRepr<f32>, D> {
         grad_output.clone()
     }
 }

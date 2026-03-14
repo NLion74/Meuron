@@ -1,6 +1,7 @@
 use meuron::{NeuralNetwork, Layers, NetworkType};
 use meuron::activation::{ReLU, Softmax};
 use meuron::cost::CrossEntropy;
+use meuron::optimizer::SGD;
 use meuron::layer::{DenseLayer};
 use meuron::metric::classification::accuracy;
 use ndarray::Array2;
@@ -88,7 +89,8 @@ fn main() {
 
     println!("Loaded {} training images", images.shape()[0]);
     println!("\nTraining with batch size 32...");
-    nn.train(&images, &labels, 0.01, 20, 32);
+    let sgd = SGD::new(0.01);
+    nn.train(&images, &labels, sgd, 10, 32);
 
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");
