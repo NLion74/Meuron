@@ -1,23 +1,25 @@
-pub mod binary_cross_entropy;
-pub mod cross_entropy;
-pub mod mse;
-
-pub use binary_cross_entropy::BinaryCrossEntropy;
-pub use cross_entropy::CrossEntropy;
-pub use mse::MSE;
-
 use ndarray::{ArrayBase, Dimension, OwnedRepr};
+use serde::{Deserialize, Serialize};
+use crate::cost::Cost;
 
-pub trait Cost {
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct MSE;
+
+impl Cost for MSE {
     fn loss<D: Dimension>(
         &self,
         predicted: &ArrayBase<OwnedRepr<f32>, D>,
         target: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> f32;
+    ) -> f32 {
+        let diff = predicted - target;
+        (&diff * &diff).mean().unwrap()
+    }
 
     fn gradient<D: Dimension>(
         &self,
         predicted: &ArrayBase<OwnedRepr<f32>, D>,
         target: &ArrayBase<OwnedRepr<f32>, D>,
-    ) -> ArrayBase<OwnedRepr<f32>, D>;
+    ) -> ArrayBase<OwnedRepr<f32>, D> {
+        predicted - target
+    }
 }
