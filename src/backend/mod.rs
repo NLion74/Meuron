@@ -1,34 +1,33 @@
 pub mod cpu;
 pub use cpu::CPUBackend;
 
-// TODO: Add GPU backend using wgpu or another Rust GPU library.
-// #[cfg(feature = "gpu")]
-// pub mod gpu::GPUBackend;
-// #[cfg(feature = "gpu")]
-// pub use gpu::GPUBackend;
+#[cfg(feature = "gpu")]
+pub mod gpu;
+#[cfg(feature = "gpu")]
+pub use gpu::WgpuBackend;
 
 use ndarray::{Dimension, RemoveAxis};
 
 #[cfg(not(any(feature = "cpu", feature = "gpu")))]
-compile_error!(
-    "No backend feature enabled. Add one to your Cargo.toml:\n\
-     meuron = { version = \"^0.2.0\", features = [\"cpu\"] }"
-);
+compile_error!(r#"
+No backend feature enabled. Add one to your Cargo.toml:
+
+    meuron = { version = "^0.2.0", features = ["cpu"] }
+"#);
 
 #[cfg(all(feature = "cpu", feature = "gpu"))]
 compile_error!(r#"
-Only one backend feature can be active at a time. Choose either "cpu" or "gpu":
+Only one backend feature can be active at a time:
 
     meuron = { version = "^0.2.0", features = ["cpu"] }
     meuron = { version = "^0.2.0", features = ["gpu"] }
 "#);
 
-
 #[cfg(feature = "cpu")]
 pub type DefaultBackend = CPUBackend;
 
 #[cfg(feature = "gpu")]
-pub type DefaultBackend = GPUBackend;
+pub type DefaultBackend = WgpuBackend;
 
 pub trait Backend: Clone + 'static {
     type Tensor<D: Dimension>: Clone;

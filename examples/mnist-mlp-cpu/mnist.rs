@@ -96,8 +96,8 @@ fn main() {
     nn.save(model_path).expect("Failed to save model");
 
     let (test_images, test_labels) = match load_mnist_data(
-        PathBuf::from("./t10k-images.idx3-ubyte"),
-        PathBuf::from("./t10k-labels.idx1-ubyte"),
+        PathBuf::from("./examples/mnist-mlp-cpu/t10k-images.idx3-ubyte"),
+        PathBuf::from("./examples/mnist-mlp-cpu/t10k-labels.idx1-ubyte"),
     ) {
         Ok(data) => data,
         Err(e) => { eprintln!("Error loading MNIST test data: {}", e); return; }
