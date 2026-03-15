@@ -25,8 +25,33 @@ impl Backend for CPUBackend {
         tensor.clone()
     }
 
-    fn mapv<D: Dimension>(tensor: &Self::Tensor<D>, f: impl Fn(f32) -> f32) -> Self::Tensor<D> {
-        tensor.mapv(f)
+    fn unary<D: Dimension>(tensor: &Self::Tensor<D>, op: u32) -> Self::Tensor<D> {
+        tensor.mapv(|x| match op {
+            0 => x.tanh(),
+            1 => 1.0 / (1.0 + (-x).exp()),
+            2 => x.max(0.0),
+            3 => {
+                let t = x.tanh();
+                1.0 - t * t
+            }
+            4 => {
+                let s = 1.0 / (1.0 + (-x).exp());
+                s * (1.0 - s)
+            }
+            5 => {
+                if x > 0.0 {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            6 => x.exp(),
+            7 => x.ln(),
+            8 => x.abs(),
+            9 => -x,
+            10 => x.sqrt(),
+            _ => panic!("unknown unary op {op}"),
+        })
     }
 
     fn add<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> {
@@ -48,6 +73,12 @@ impl Backend for CPUBackend {
 
     fn scalar_sub<D: Dimension>(scalar: f32, tensor: &Self::Tensor<D>) -> Self::Tensor<D> {
         tensor.mapv(|v| scalar - v)
+    }
+    fn scalar_max<D: Dimension>(tensor: &Array<f32, D>, s: f32) -> Array<f32, D> {
+        tensor.mapv(|x| x.max(s))
+    }
+    fn scalar_min<D: Dimension>(tensor: &Array<f32, D>, s: f32) -> Array<f32, D> {
+        tensor.mapv(|x| x.min(s))
     }
 
     fn mean<D: Dimension>(tensor: &Self::Tensor<D>) -> Option<f32> {
@@ -104,8 +135,53 @@ impl Backend for CPUBackend {
                 }
                 result
             }
+            (4, 2) => {
+                let (b1, b2, m, _k) = (
+                    a_dyn.shape()[0],
+                    a_dyn.shape()[1],
+                    a_dyn.shape()[2],
+                    a_dyn.shape()[3],
+                );
+                let n = b_dyn.shape()[1];
+                let bw = b_dyn.view().into_dimensionality::<Ix2>().unwrap();
+                let mut out = Array::zeros((b1, b2, m, n)).into_dyn();
+                for i in 0..b1 {
+                    let ai = a_dyn.index_axis(Axis(0), i);
+                    let mut oi = out.index_axis_mut(Axis(0), i);
+                    for j in 0..b2 {
+                        let aij = ai
+                            .index_axis(Axis(0), j)
+                            .into_dimensionality::<Ix2>()
+                            .unwrap();
+                        oi.index_axis_mut(Axis(0), j).assign(&aij.dot(&bw));
+                    }
+                }
+                out
+            }
+            (4, 4) => {
+                let (b1, b2, m) = (a_dyn.shape()[0], a_dyn.shape()[1], a_dyn.shape()[2]);
+                let n = b_dyn.shape()[3];
+                let mut out = Array::zeros((b1, b2, m, n)).into_dyn();
+                for i in 0..b1 {
+                    let ai = a_dyn.index_axis(Axis(0), i);
+                    let bi = b_dyn.index_axis(Axis(0), i);
+                    let mut oi = out.index_axis_mut(Axis(0), i);
+                    for j in 0..b2 {
+                        let aij = ai
+                            .index_axis(Axis(0), j)
+                            .into_dimensionality::<Ix2>()
+                            .unwrap();
+                        let bij = bi
+                            .index_axis(Axis(0), j)
+                            .into_dimensionality::<Ix2>()
+                            .unwrap();
+                        oi.index_axis_mut(Axis(0), j).assign(&aij.dot(&bij));
+                    }
+                }
+                out
+            }
             _ => panic!(
-                "matmul: unsupported shapes {:?} × {:?}",
+                "matmul: unsupported shapes {:?} x {:?}",
                 a_dyn.shape(),
                 b_dyn.shape()
             ),
@@ -142,7 +218,7 @@ impl Backend for CPUBackend {
     fn softmax<D: Dimension>(tensor: &Self::Tensor<D>) -> Self::Tensor<D> {
         let shape = tensor.shape().to_vec();
         let last_dim = shape[shape.len() - 1];
-        let batch: usize = shape[..shape.len() - 1].iter().product::<usize>().max(1);
+        let batch = shape[..shape.len() - 1].iter().product::<usize>().max(1);
         let x_c = tensor.as_standard_layout();
         let raw = x_c.as_slice().unwrap();
         let mut out = vec![0.0f32; raw.len()];
@@ -164,7 +240,7 @@ impl Backend for CPUBackend {
     ) -> Self::Tensor<D> {
         let shape = z.shape().to_vec();
         let last_dim = shape[shape.len() - 1];
-        let batch: usize = shape[..shape.len() - 1].iter().product::<usize>().max(1);
+        let batch = shape[..shape.len() - 1].iter().product::<usize>().max(1);
         let s = Self::softmax(z);
         let s_c = s.as_standard_layout();
         let s_raw = s_c.as_slice().unwrap();

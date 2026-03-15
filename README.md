@@ -7,9 +7,11 @@
 ## Features
 
 - Modular layer system
-- Multiple activation functions (ReLU, Sigmoid, Softmax)
+- CPU and GPU backends (via ndarray/wgpu)
+- Multiple activation functions (ReLU, Sigmoid, Tanh, Softmax)
 - Multiple cost functions (MSE, CrossEntropy, BinaryCrossEntropy)
-- Optimizer Support
+- Optimizer support (SGD)
+- Model serialization and deserialization
 - Easy to extend with custom layers and activations
 
 ## Quick Start
@@ -17,34 +19,54 @@
 Add to your `Cargo.toml`:
 
 ```toml
-[dependencies]
+# CPU backend
 meuron = { version = "0.2", features = ["cpu"] }
+
+# GPU backend (requires WebGPU support)
+meuron = { version = "0.2", features = ["gpu"] }
 ```
+
+Only one backend can be active at a time.
 
 ## Basic Example
 
 ```rust
-use meuron::{NeuralNetwork, layer::DenseLayer, activation::ReLU, activation::Softmax, cost::MSE, Layers};
+use meuron::{
+    NeuralNetwork, NetworkType, Layers,
+    layer::DenseLayer,
+    activation::{ReLU, Softmax},
+    cost::CrossEntropy,
+    optimizer::SGD,
+};
 use ndarray::Array2;
 
 fn main() {
-    // Create a simple 2-layer network
     let layer1 = DenseLayer::new(784, 128, ReLU);
-    let layer2 = DenseLayer::new(128, 10, Softmax);
+    let layer2 = DenseLayer::new(128, 64,  ReLU);
+    let layer3 = DenseLayer::new(64,  10,  Softmax);
 
-    let mut nn = NeuralNetwork::new(
-        Layers![layer1, layer2],
-        MSE,
+    type Net = NeuralNetwork<
+        NetworkType!(
+            DenseLayer<ReLU>,
+            DenseLayer<ReLU>,
+            DenseLayer<Softmax>
+        ),
+        CrossEntropy,
+    >;
+
+    let mut nn: Net = NeuralNetwork::new(
+        Layers![layer1, layer2, layer3],
+        CrossEntropy,
     );
 
     // Train the network
-    nn.train(&train_data, &train_labels, 0.01, 10, 32);
+    nn.train(train_data, train_labels, SGD::new(0.01), 10, 32);
 
     // Save the model
     nn.save("model.bin").unwrap();
 
     // Load later
-    let loaded_nn = NeuralNetwork::load("model.bin", MSE).unwrap();
+    let loaded: Net = NeuralNetwork::load("model.bin", CrossEntropy).unwrap();
 }
 ```
 
@@ -63,7 +85,7 @@ fn main() {
 - CrossEntropy
 - BinaryCrossEntropy
 
-# Optimizers
+#### Optimizers
 
 - SGD
 
@@ -71,12 +93,21 @@ fn main() {
 
 - DenseLayer
 
+#### Macros
+
+- `Layers![l1, l2, ...]` - compose layers into a Sequential Chain
+- `NetworkType!(L1, L2, ...)` - produce a matching type of Sequential Chain of annotation
+
 ## Examples
 
 See the examples/ directory:
 
 ```
 cargo run --example mnist-mlp-cpu --release
+```
+
+```
+cargo run --example mnist-mlp-gpu --release --no-default-features --features gpu
 ```
 
 ## Contributing

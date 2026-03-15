@@ -9,8 +9,10 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
 
-type MnistNetwork =
-    NeuralNetwork<NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>], CrossEntropy>;
+type MnistNetwork = NeuralNetwork<
+    NetworkType![DenseLayer<ReLU>, DenseLayer<ReLU>, DenseLayer<Softmax>],
+    CrossEntropy,
+>;
 
 fn read_u32_from_file(file: &mut File) -> Result<u32, io::Error> {
     let mut buf = [0u8; 4];
@@ -64,21 +66,25 @@ fn load_mnist_data(
 }
 
 fn main() {
-    let model_path = "./examples/mnist-mlp-cpu/mnist_model.bin";
+    let model_path = "./examples/mnist/mnist_model_gpu.bin";
 
     let mut nn: MnistNetwork = if PathBuf::from(model_path).exists() {
         println!("Loading existing model...");
         NeuralNetwork::load(model_path, CrossEntropy).expect("Failed to load model")
     } else {
         println!("Creating new model...");
-        let dense_layer_1 = DenseLayer::new(28 * 28, 128, ReLU);
-        let dense_layer_2 = DenseLayer::new(128, 10, Softmax);
-        NeuralNetwork::new(Layers![dense_layer_1, dense_layer_2], CrossEntropy)
+        let dense_layer_1 = DenseLayer::new(28 * 28, 500, ReLU);
+        let dense_layer_2 = DenseLayer::new(500, 128, ReLU);
+        let dense_layer_3 = DenseLayer::new(128, 10, Softmax);
+        NeuralNetwork::new(
+            Layers![dense_layer_1, dense_layer_2, dense_layer_3],
+            CrossEntropy,
+        )
     };
 
     let (images, labels) = match load_mnist_data(
-        PathBuf::from("./examples/mnist-mlp-cpu/train-images.idx3-ubyte"),
-        PathBuf::from("./examples/mnist-mlp-cpu/train-labels.idx1-ubyte"),
+        PathBuf::from("./examples/mnist/train-images.idx3-ubyte"),
+        PathBuf::from("./examples/mnist/train-labels.idx1-ubyte"),
     ) {
         Ok(data) => data,
         Err(e) => {
@@ -88,16 +94,16 @@ fn main() {
     };
 
     println!("Loaded {} training images", images.shape()[0]);
-    println!("\nTraining with batch size 32...");
+    println!("\nTraining with batch size 1024...");
     let sgd = SGD::new(0.01);
-    nn.train(&images, &labels, sgd, 10, 32);
+    nn.train(images, labels, sgd, 100, 1024);
 
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");
 
     let (test_images, test_labels) = match load_mnist_data(
-        PathBuf::from("./t10k-images.idx3-ubyte"),
-        PathBuf::from("./t10k-labels.idx1-ubyte"),
+        PathBuf::from("./examples/mnist/t10k-images.idx3-ubyte"),
+        PathBuf::from("./examples/mnist/t10k-labels.idx1-ubyte"),
     ) {
         Ok(data) => data,
         Err(e) => {
@@ -106,6 +112,6 @@ fn main() {
         }
     };
 
-    let acc = accuracy(&mut nn, &test_images, &test_labels);
+    let acc = accuracy(&mut nn, test_images, test_labels);
     println!("\nTest accuracy: {:.2}%", acc * 100.0);
 }

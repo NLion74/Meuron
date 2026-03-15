@@ -1,39 +1,63 @@
 use crate::NeuralNetwork;
-use crate::backend::DefaultBackend;
+use crate::backend::Backend;
 use crate::cost::Cost;
 use crate::layer::Layer;
-use ndarray::{ArrayBase, Axis, Ix2, OwnedRepr};
+use ndarray::{Array, Axis, Dimension};
 use serde::{Deserialize, Serialize};
 
-pub fn accuracy<L, C>(
-    network: &mut NeuralNetwork<L, C, DefaultBackend>,
-    test_data: &ArrayBase<OwnedRepr<f32>, Ix2>,
-    test_labels: &ArrayBase<OwnedRepr<f32>, Ix2>,
-) -> f32
+pub trait Forward<B: Backend> {
+    type Input: Dimension;
+    type Output: Dimension;
+    fn run(&mut self, x: &B::Tensor<Self::Input>) -> B::Tensor<Self::Output>;
+}
+
+impl<L, C, B> Forward<B> for NeuralNetwork<L, C, B>
 where
-    L: Layer<DefaultBackend, Input = Ix2, Output = Ix2> + Serialize + for<'de> Deserialize<'de>,
-    C: Cost<DefaultBackend>,
+    B: Backend,
+    L: Layer<B> + Serialize + for<'de> Deserialize<'de>,
+    C: Cost<B>,
 {
-    let predictions = network.forward(test_data);
+    type Input = L::Input;
+    type Output = L::Output;
 
-    assert_eq!(predictions.shape(), test_labels.shape(), "shape mismatch");
+    fn run(&mut self, x: &B::Tensor<L::Input>) -> B::Tensor<L::Output> {
+        self.forward(x)
+    }
+}
 
-    let argmax = |row: ndarray::ArrayView1<f32>| {
+pub fn accuracy<B, N, I, T>(network: &mut N, test_data: I, test_labels: T) -> f32
+where
+    B: Backend,
+    N: Forward<B>,
+    I: Into<B::Tensor<N::Input>>,
+    T: Into<Array<f32, N::Output>>,
+{
+    let test_data = test_data.into();
+    let test_labels = test_labels.into();
+
+    let predictions = network.run(&test_data);
+    let pred_arr = B::to_array(&predictions).into_dyn();
+    let label_arr = test_labels.into_dyn();
+
+    let n = pred_arr.shape()[0];
+    assert_eq!(n, label_arr.shape()[0], "shape mismatch");
+
+    let argmax = |row: ndarray::ArrayView1<f32>| -> f32 {
         row.iter()
             .enumerate()
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(i, _)| i)
-            .unwrap()
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .map(|(i, _)| i as f32)
+            .unwrap_or(0.0)
     };
 
-    let pred_classes = predictions.map_axis(Axis(1), argmax);
-    let true_classes = test_labels.map_axis(Axis(1), argmax);
+    let last = Axis(pred_arr.ndim() - 1);
+    let pred_classes = pred_arr.map_axis(last, argmax);
+    let label_classes = label_arr.map_axis(last, argmax);
 
-    let correct = pred_classes
+    pred_classes
         .iter()
-        .zip(true_classes.iter())
-        .filter(|&(p, t)| p == t)
-        .count();
-
-    correct as f32 / predictions.len_of(Axis(0)) as f32
+        .zip(label_classes.iter())
+        .filter(|(p, l)| (*p - *l).abs() < 0.5)
+        .count() as f32
+        / n as f32
 }
