@@ -1,7 +1,7 @@
-use ndarray::{Dimension};
-use serde::{Deserialize, Serialize};
 use crate::activation::Activation;
 use crate::backend::Backend;
+use ndarray::Dimension;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Softmax;

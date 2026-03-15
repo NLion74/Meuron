@@ -1,7 +1,7 @@
-use ndarray::Dimension;
-use serde::{Deserialize, Serialize};
 use crate::activation::Activation;
 use crate::backend::Backend;
+use ndarray::Dimension;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Sigmoid;
@@ -16,4 +16,3 @@ impl<B: Backend> Activation<B> for Sigmoid {
         B::mul(&s, &B::scalar_sub(1.0, &s))
     }
 }
-    

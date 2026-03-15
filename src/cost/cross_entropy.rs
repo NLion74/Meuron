@@ -1,7 +1,7 @@
-use ndarray::Dimension;
-use serde::{Deserialize, Serialize};
 use crate::backend::Backend;
 use crate::cost::Cost;
+use ndarray::Dimension;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct CrossEntropy;

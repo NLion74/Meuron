@@ -1,7 +1,7 @@
-use ndarray::Dimension;
-use serde::{Deserialize, Serialize};
 use crate::backend::Backend;
 use crate::cost::Cost;
+use ndarray::Dimension;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct BinaryCrossEntropy;
@@ -12,7 +12,10 @@ impl<B: Backend> Cost<B> for BinaryCrossEntropy {
         let c = B::mapv(predicted, |v| v.clamp(eps, 1.0 - eps));
         let loss = B::add(
             &B::mul(target, &B::mapv(&c, |v| v.ln())),
-            &B::mul(&B::scalar_sub(1.0, target), &B::mapv(&c, |v| (1.0 - v).ln())),
+            &B::mul(
+                &B::scalar_sub(1.0, target),
+                &B::mapv(&c, |v| (1.0 - v).ln()),
+            ),
         );
         -B::mean(&loss).unwrap_or(0.0)
     }

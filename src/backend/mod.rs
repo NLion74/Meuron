@@ -16,12 +16,14 @@ No backend feature enabled. Add one to your Cargo.toml:
 "#);
 
 #[cfg(all(feature = "cpu", feature = "gpu"))]
-compile_error!(r#"
-Only one backend feature can be active at a time:
+compile_error!(
+    r#"
+Only one backend feature can be active at a time. Choose either "cpu" or "gpu":
 
     meuron = { version = "^0.2.0", features = ["cpu"] }
     meuron = { version = "^0.2.0", features = ["gpu"] }
-"#);
+"#
+);
 
 #[cfg(feature = "cpu")]
 pub type DefaultBackend = CPUBackend;

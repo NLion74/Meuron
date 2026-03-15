@@ -34,7 +34,11 @@ where
     C: Cost<B>,
 {
     pub fn new(layers: L, cost: C) -> Self {
-        NeuralNetwork { layers, cost, _backend: PhantomData }
+        NeuralNetwork {
+            layers,
+            cost,
+            _backend: PhantomData,
+        }
     }
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
@@ -49,9 +53,13 @@ where
         let mut file = File::open(path)?;
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
-        let layers: L = postcard::from_bytes(&buffer)
-            .map_err(|e| std::io::Error::other(e.to_string()))?;
-        Ok(NeuralNetwork { layers, cost, _backend: PhantomData })
+        let layers: L =
+            postcard::from_bytes(&buffer).map_err(|e| std::io::Error::other(e.to_string()))?;
+        Ok(NeuralNetwork {
+            layers,
+            cost,
+            _backend: PhantomData,
+        })
     }
 
     pub fn forward(&mut self, input: &B::Tensor<L::Input>) -> B::Tensor<L::Output> {
@@ -104,7 +112,8 @@ where
 
             println!(
                 "Epoch {}/{}: Loss = {:.6}",
-                epoch + 1, epochs,
+                epoch + 1,
+                epochs,
                 total_loss / batch_count as f32
             );
         }

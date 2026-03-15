@@ -1,17 +1,25 @@
+use crate::backend::{Backend, DefaultBackend};
+use crate::layer::Layer;
 use ndarray::Dimension;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
-use crate::backend::{Backend, DefaultBackend};
-use crate::layer::Layer;
 
 #[derive(Serialize, Deserialize)]
 pub struct EmptyLayer<D, B: Backend = DefaultBackend> {
     _phantom: PhantomData<(D, B)>,
 }
 
+impl<D, B: Backend> Default for EmptyLayer<D, B> {
+    fn default() -> Self {
+        Self {
+            _phantom: PhantomData,
+        }
+    }
+}
+
 impl<D, B: Backend> EmptyLayer<D, B> {
     pub fn new() -> Self {
-        EmptyLayer { _phantom: PhantomData }
+        Self::default()
     }
 }
 

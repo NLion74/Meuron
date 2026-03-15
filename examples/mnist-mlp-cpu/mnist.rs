@@ -1,19 +1,16 @@
-use meuron::{NeuralNetwork, Layers, NetworkType};
 use meuron::activation::{ReLU, Softmax};
 use meuron::cost::CrossEntropy;
-use meuron::optimizer::SGD;
-use meuron::layer::{DenseLayer};
+use meuron::layer::DenseLayer;
 use meuron::metric::classification::accuracy;
+use meuron::optimizer::SGD;
+use meuron::{Layers, NetworkType, NeuralNetwork};
 use ndarray::Array2;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
 
-type MnistNetwork = NeuralNetwork<
-    NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>],
-    CrossEntropy,
->;
-
+type MnistNetwork =
+    NeuralNetwork<NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>], CrossEntropy>;
 
 fn read_u32_from_file(file: &mut File) -> Result<u32, io::Error> {
     let mut buf = [0u8; 4];
@@ -82,9 +79,12 @@ fn main() {
     let (images, labels) = match load_mnist_data(
         PathBuf::from("./examples/mnist-mlp-cpu/train-images.idx3-ubyte"),
         PathBuf::from("./examples/mnist-mlp-cpu/train-labels.idx1-ubyte"),
-    ) { 
+    ) {
         Ok(data) => data,
-        Err(e) => { eprintln!("Error loading MNIST training data: {}", e); return; }
+        Err(e) => {
+            eprintln!("Error loading MNIST training data: {}", e);
+            return;
+        }
     };
 
     println!("Loaded {} training images", images.shape()[0]);
@@ -100,7 +100,10 @@ fn main() {
         PathBuf::from("./examples/mnist-mlp-cpu/t10k-labels.idx1-ubyte"),
     ) {
         Ok(data) => data,
-        Err(e) => { eprintln!("Error loading MNIST test data: {}", e); return; }
+        Err(e) => {
+            eprintln!("Error loading MNIST test data: {}", e);
+            return;
+        }
     };
 
     let acc = accuracy(&mut nn, &test_images, &test_labels);

@@ -1,7 +1,7 @@
+use crate::backend::Backend;
 use ndarray::{Array, ArrayBase, Axis, Dimension, Ix2, OwnedRepr, RemoveAxis};
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
-use crate::backend::Backend;
 
 #[derive(Clone)]
 pub struct CPUBackend;
@@ -29,10 +29,18 @@ impl Backend for CPUBackend {
         tensor.mapv(f)
     }
 
-    fn add<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> { a + b }
-    fn sub<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> { a - b }
-    fn mul<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> { a * b }
-    fn div<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> { a / b }
+    fn add<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> {
+        a + b
+    }
+    fn sub<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> {
+        a - b
+    }
+    fn mul<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> {
+        a * b
+    }
+    fn div<D: Dimension>(a: &Self::Tensor<D>, b: &Self::Tensor<D>) -> Self::Tensor<D> {
+        a / b
+    }
 
     fn scale<D: Dimension>(tensor: &Self::Tensor<D>, scalar: f32) -> Self::Tensor<D> {
         tensor * scalar
@@ -71,8 +79,10 @@ impl Backend for CPUBackend {
                 let b2 = b_dyn.view().into_dimensionality::<Ix2>().unwrap();
                 let mut result = Array::zeros((batch, m, n)).into_dyn();
                 for i in 0..batch {
-                    let ai = a_dyn.index_axis(Axis(0), i)
-                        .into_dimensionality::<Ix2>().unwrap();
+                    let ai = a_dyn
+                        .index_axis(Axis(0), i)
+                        .into_dimensionality::<Ix2>()
+                        .unwrap();
                     result.index_axis_mut(Axis(0), i).assign(&ai.dot(&b2));
                 }
                 result
@@ -82,15 +92,23 @@ impl Backend for CPUBackend {
                 let n = b_dyn.shape()[2];
                 let mut result = Array::zeros((batch, m, n)).into_dyn();
                 for i in 0..batch {
-                    let ai = a_dyn.index_axis(Axis(0), i)
-                        .into_dimensionality::<Ix2>().unwrap();
-                    let bi = b_dyn.index_axis(Axis(0), i)
-                        .into_dimensionality::<Ix2>().unwrap();
+                    let ai = a_dyn
+                        .index_axis(Axis(0), i)
+                        .into_dimensionality::<Ix2>()
+                        .unwrap();
+                    let bi = b_dyn
+                        .index_axis(Axis(0), i)
+                        .into_dimensionality::<Ix2>()
+                        .unwrap();
                     result.index_axis_mut(Axis(0), i).assign(&ai.dot(&bi));
                 }
                 result
             }
-            _ => panic!("matmul: unsupported shapes {:?} × {:?}", a_dyn.shape(), b_dyn.shape()),
+            _ => panic!(
+                "matmul: unsupported shapes {:?} × {:?}",
+                a_dyn.shape(),
+                b_dyn.shape()
+            ),
         };
         out.into_dimensionality::<D1>()
             .expect("matmul output rank must match left operand")
@@ -120,7 +138,6 @@ impl Backend for CPUBackend {
             .into_dimensionality::<D1>()
             .expect("broadcast_add output rank must match left operand")
     }
-
 
     fn softmax<D: Dimension>(tensor: &Self::Tensor<D>) -> Self::Tensor<D> {
         let shape = tensor.shape().to_vec();
