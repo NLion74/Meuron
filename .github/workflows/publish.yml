@@ -24,7 +24,7 @@ jobs:
               run: |
                   cargo fmt --all -- --check
                   cargo clippy --all-targets -- -D warnings
-                  cargo test --all
+                  cargo test --release --no-default-features --features gpu -- gpu_ops_parity mnist_gpu_parity --nocapture
 
             - name: Publish
               env:

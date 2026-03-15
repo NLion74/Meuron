@@ -36,12 +36,12 @@ pollster = { version = "0.4.0", optional = true }
 
 [[example]]
 name = "mnist-mlp-cpu"
-path = "examples/mnist-mlp-cpu/mnist.rs"
+path = "examples/mnist/cpu.rs"
 required-features = ["cpu"]
 
 [[example]]
 name = "mnist-mlp-gpu"
-path = "examples/mnist-mlp-gpu/mnist.rs"
+path = "examples/mnist/gpu.rs"
 required-features = ["gpu"]
 
 [lib]

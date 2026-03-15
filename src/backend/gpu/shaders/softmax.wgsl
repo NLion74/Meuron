@@ -1,3 +1,4 @@
+// Softmax forward.
 @group(0) @binding(0) var<storage, read>       inp : array<f32>;
 @group(0) @binding(1) var<storage, read_write> out : array<f32>;
 

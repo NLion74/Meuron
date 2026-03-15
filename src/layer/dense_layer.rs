@@ -63,8 +63,14 @@ impl<A: Activation<B>, B: Backend> Layer<B> for DenseLayer<A, B> {
 
         let grad_z = self.activation.vjp(last_z, grad_output);
 
-        self.grad_weights = Some(B::matmul(&B::transpose(last_input, 0, 1), &grad_z));
-        self.grad_biases = Some(B::sum_axis(&grad_z, 0));
+        let batch_size = B::len_of(last_input, 0) as f32;
+        let inv_batch = 1.0 / batch_size.max(1.0);
+
+        self.grad_weights = Some(B::scale(
+            &B::matmul(&B::transpose(last_input, 0, 1), &grad_z),
+            inv_batch,
+        ));
+        self.grad_biases = Some(B::scale(&B::sum_axis(&grad_z, 0), inv_batch));
 
         B::matmul(&grad_z, &B::transpose(&self.weights, 0, 1))
     }

@@ -70,36 +70,49 @@ where
         self.layers.backward(grad_output)
     }
 
-    pub fn train<O: Optimizer<B>>(
+    pub fn train<O, I, T>(
         &mut self,
-        inputs: &B::Tensor<L::Input>,
-        targets: &B::Tensor<L::Output>,
+        inputs:        I,
+        targets:       T,
         mut optimizer: O,
-        epochs: usize,
-        batch_size: usize,
-    ) where
-        L::Input: RemoveAxis,
+        epochs:        usize,
+        batch_size:    usize,
+    ) -> Vec<f32>
+    where
+        O: Optimizer<B>,
+        I: Into<B::Tensor<L::Input>>,
+        T: Into<B::Tensor<L::Output>>,
+        L::Input:  RemoveAxis,
         L::Output: RemoveAxis,
     {
+        use ndarray::Axis;
         use rand::rng;
         use rand::seq::SliceRandom;
 
-        let num_samples = B::len_of(inputs, 0);
-        assert_eq!(num_samples, B::len_of(targets, 0), "batch size mismatch");
+        let inputs  = inputs.into();
+        let targets = targets.into();
+
+        let num_samples = B::len_of(&inputs, 0);
+        assert_eq!(num_samples, B::len_of(&targets, 0), "batch size mismatch");
+
+        let inputs_cpu  = B::to_array(&inputs);
+        let targets_cpu = B::to_array(&targets);
+
+        let mut losses = Vec::with_capacity(epochs);
 
         for epoch in 0..epochs {
-            let mut total_loss = 0.0;
+            let mut total_loss  = 0.0;
             let mut batch_count = 0;
 
             let mut indices: Vec<usize> = (0..num_samples).collect();
             indices.shuffle(&mut rng());
 
             for batch_start in (0..num_samples).step_by(batch_size) {
-                let batch_end = (batch_start + batch_size).min(num_samples);
+                let batch_end     = (batch_start + batch_size).min(num_samples);
                 let batch_indices = &indices[batch_start..batch_end];
 
-                let batch_input = B::select(inputs, 0, batch_indices);
-                let batch_target = B::select(targets, 0, batch_indices);
+                let batch_input  = B::from_array(inputs_cpu.select(Axis(0), batch_indices));
+                let batch_target = B::from_array(targets_cpu.select(Axis(0), batch_indices));
 
                 let output = self.forward(&batch_input);
                 total_loss += self.cost.loss(&output, &batch_target);
@@ -107,6 +120,8 @@ where
                 let grad = self.cost.gradient(&output, &batch_target);
                 self.backward(&grad);
                 self.layers.update(&mut optimizer);
+
+                B::flush();
                 batch_count += 1;
             }
 
@@ -116,8 +131,12 @@ where
                 epochs,
                 total_loss / batch_count as f32
             );
+            losses.push(total_loss / batch_count as f32);
         }
+
+        losses
     }
+
 }
 
 #[macro_export]
