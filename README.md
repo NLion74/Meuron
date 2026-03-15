@@ -1,12 +1,15 @@
 # Meuron
 
-A modular rust written library for training simple Neuronal Networks.
+**Meuron** is a modular neural network library written in rust for training simple neural networks.
+
+> Built mainly for personal learning and experimentation, focused on clean, extensible architecture and implementing neural network concepts from scratch.
 
 ## Features
 
 - Modular layer system
 - Multiple activation functions (ReLU, Sigmoid, Softmax)
 - Multiple cost functions (MSE, CrossEntropy, BinaryCrossEntropy)
+- Optimizer Support
 - Easy to extend with custom layers and activations
 
 ## Quick Start
@@ -15,7 +18,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-meuron = "0.1"
+meuron = { version = "0.2", features = ["cpu"] }
 ```
 
 ## Basic Example
@@ -60,6 +63,10 @@ fn main() {
 - CrossEntropy
 - BinaryCrossEntropy
 
+# Optimizers
+
+- SGD
+
 #### Layers
 
 - DenseLayer
@@ -69,7 +76,7 @@ fn main() {
 See the examples/ directory:
 
 ```
-cargo run --example mnist --release
+cargo run --example mnist-mlp-cpu --release
 ```
 
 ## Contributing

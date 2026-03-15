@@ -1,71 +1,21 @@
-use ndarray::Array2;
-use serde::{Deserialize, Serialize};
+pub mod relu;
+pub mod sigmoid;
+pub mod softmax;
+pub mod tanh;
 
-pub trait Activation: Clone {
-    fn activate(&self, x: &Array2<f32>) -> Array2<f32>;
-    fn derivative(&self, x: &Array2<f32>) -> Array2<f32>;
-}
+pub use relu::ReLU;
+pub use sigmoid::Sigmoid;
+pub use softmax::Softmax;
+pub use tanh::Tanh;
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct ReLU;
+use crate::backend::Backend;
+use ndarray::Dimension;
 
-impl Activation for ReLU {
-    fn activate(&self, x: &Array2<f32>) -> Array2<f32> {
-        x.mapv(|v| v.max(0.0))
-    }
+pub trait Activation<B: Backend>: Clone {
+    fn activate<D: Dimension>(&self, x: &B::Tensor<D>) -> B::Tensor<D>;
+    fn derivative<D: Dimension>(&self, x: &B::Tensor<D>) -> B::Tensor<D>;
 
-    fn derivative(&self, x: &Array2<f32>) -> Array2<f32> {
-        x.mapv(|v| if v > 0.0 { 1.0 } else { 0.0 })
-    }
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct Sigmoid;
-
-impl Activation for Sigmoid {
-    fn activate(&self, x: &Array2<f32>) -> Array2<f32> {
-        x.mapv(|v| 1.0 / (1.0 + (-v).exp()))
-    }
-
-    fn derivative(&self, x: &Array2<f32>) -> Array2<f32> {
-        let sigmoid = self.activate(x);
-        &sigmoid * &(1.0 - &sigmoid)
-    }
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct Softmax;
-
-impl Activation for Softmax {
-    fn activate(&self, x: &Array2<f32>) -> Array2<f32> {
-        let mut result = Array2::zeros(x.dim());
-        for (i, row) in x.axis_iter(ndarray::Axis(0)).enumerate() {
-            let max = row.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-            let exp: ndarray::Array1<f32> = row.mapv(|v| (v - max).exp());
-            let sum: f32 = exp.sum();
-            let normalized = &exp / sum;
-            result.row_mut(i).assign(&normalized);
-        }
-        result
-    }
-
-    fn derivative(&self, x: &Array2<f32>) -> Array2<f32> {
-        x.mapv(|_| 1.0)
-    }
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct Tanh;
-
-impl Activation for Tanh {
-    fn activate(&self, x: &Array2<f32>) -> Array2<f32> {
-        x.mapv(|v| v.tanh())
-    }
-
-    fn derivative(&self, x: &Array2<f32>) -> Array2<f32> {
-        x.mapv(|v| {
-            let tanh_v = v.tanh();
-            1.0 - tanh_v * tanh_v
-        })
+    fn vjp<D: Dimension>(&self, z: &B::Tensor<D>, grad: &B::Tensor<D>) -> B::Tensor<D> {
+        B::mul(grad, &self.derivative(z))
     }
 }
