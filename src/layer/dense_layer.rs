@@ -1,10 +1,10 @@
-use ndarray::{Ix1, Ix2};
-use serde::{Deserialize, Serialize};
-use std::marker::PhantomData;
 use crate::activation::Activation;
 use crate::backend::{Backend, DefaultBackend};
 use crate::layer::Layer;
 use crate::optimizer::Optimizer;
+use ndarray::{Ix1, Ix2};
+use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 #[derive(Serialize, Deserialize)]
 #[serde(bound(
@@ -18,11 +18,16 @@ where
     pub weights: B::Tensor<Ix2>,
     pub biases: B::Tensor<Ix1>,
     pub activation: A,
-    #[serde(skip)] last_input: Option<B::Tensor<Ix2>>,
-    #[serde(skip)] last_z: Option<B::Tensor<Ix2>>,
-    #[serde(skip)] grad_weights: Option<B::Tensor<Ix2>>,
-    #[serde(skip)] grad_biases: Option<B::Tensor<Ix1>>,
-    #[serde(skip)] _backend: PhantomData<B>,
+    #[serde(skip)]
+    last_input: Option<B::Tensor<Ix2>>,
+    #[serde(skip)]
+    last_z: Option<B::Tensor<Ix2>>,
+    #[serde(skip)]
+    grad_weights: Option<B::Tensor<Ix2>>,
+    #[serde(skip)]
+    grad_biases: Option<B::Tensor<Ix1>>,
+    #[serde(skip)]
+    _backend: PhantomData<B>,
 }
 
 impl<A: Activation<B>, B: Backend> DenseLayer<A, B> {
