@@ -1,3 +1,4 @@
+use flate2::read::GzDecoder;
 use meuron::activation::{ReLU, Softmax};
 use meuron::cost::CrossEntropy;
 use meuron::layer::DenseLayer;
@@ -5,65 +6,99 @@ use meuron::metric::classification::accuracy;
 use meuron::optimizer::SGD;
 use meuron::{Layers, NetworkType, NeuralNetwork};
 use ndarray::Array2;
-use std::fs::File;
-use std::io::{self, Read};
-use std::path::PathBuf;
+use std::fs::{self, File};
+use std::io::{self, BufWriter, Read};
+use std::path::{Path, PathBuf};
 
-type MnistNetwork =
-    NeuralNetwork<NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>], CrossEntropy>;
+type MnistNetwork = NeuralNetwork<
+    NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>],
+    CrossEntropy,
+>;
 
-fn read_u32_from_file(file: &mut File) -> Result<u32, io::Error> {
+const MIRROR: &str = "https://systemds.apache.org/assets/datasets/mnist";
+
+const FILES: &[&str] = &[
+    "train-images-idx3-ubyte.gz",
+    "train-labels-idx1-ubyte.gz",
+    "t10k-images-idx3-ubyte.gz",
+    "t10k-labels-idx1-ubyte.gz",
+];
+
+fn ensure_mnist(dir: &Path) -> io::Result<()> {
+    fs::create_dir_all(dir)?;
+
+    for &gz_name in FILES {
+        let decompressed_name = gz_name.strip_suffix(".gz").unwrap();
+        let dest = dir.join(decompressed_name);
+
+        if dest.exists() {
+            continue;
+        }
+
+        let url = format!("{}/{}", MIRROR, gz_name);
+        println!("Downloading {}...", gz_name);
+
+        let response = ureq::get(&url)
+            .call()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+        let mut body = response.into_body();
+        let mut gz  = GzDecoder::new(body.as_reader());
+        let mut out = BufWriter::new(File::create(&dest)?);
+        io::copy(&mut gz, &mut out)?;
+
+        println!("  → saved to {}", dest.display());
+    }
+
+    Ok(())
+}
+
+fn read_u32(file: &mut File) -> io::Result<u32> {
     let mut buf = [0u8; 4];
     file.read_exact(&mut buf)?;
     Ok(u32::from_be_bytes(buf))
 }
 
-fn load_mnist_data(
-    images_path: PathBuf,
-    labels_path: PathBuf,
-) -> Result<(Array2<f32>, Array2<f32>), io::Error> {
-    let mut image_file = File::open(images_path)?;
-    let mut label_file = File::open(labels_path)?;
+fn load_mnist(dir: &Path, prefix: &str) -> io::Result<(Array2<f32>, Array2<f32>)> {
+    ensure_mnist(dir)?;
 
-    let _magic_images = read_u32_from_file(&mut image_file)?;
-    let num_images = read_u32_from_file(&mut image_file)?;
-    let num_rows = read_u32_from_file(&mut image_file)?;
-    let num_cols = read_u32_from_file(&mut image_file)?;
+    let mut img_f = File::open(dir.join(format!("{}-images-idx3-ubyte", prefix)))?;
+    let mut lbl_f = File::open(dir.join(format!("{}-labels-idx1-ubyte", prefix)))?;
 
-    let _magic_labels = read_u32_from_file(&mut label_file)?;
-    let num_labels = read_u32_from_file(&mut label_file)?;
+    let _magic = read_u32(&mut img_f)?;
+    let n      = read_u32(&mut img_f)? as usize;
+    let rows   = read_u32(&mut img_f)? as usize;
+    let cols   = read_u32(&mut img_f)? as usize;
 
-    assert_eq!(num_images, num_labels);
+    let _magic2  = read_u32(&mut lbl_f)?;
+    let n_labels = read_u32(&mut lbl_f)? as usize;
+    assert_eq!(n, n_labels);
 
-    let mut image_data = vec![0u8; (num_images * num_rows * num_cols) as usize];
-    image_file.read_exact(&mut image_data)?;
+    let mut raw_images = vec![0u8; n * rows * cols];
+    img_f.read_exact(&mut raw_images)?;
+
+    let mut raw_labels = vec![0u8; n];
+    lbl_f.read_exact(&mut raw_labels)?;
 
     let images = Array2::from_shape_vec(
-        (num_images as usize, (num_rows * num_cols) as usize),
-        image_data.into_iter().map(|x| x as f32 / 255.0).collect(),
-    )
-    .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-
-    let mut label_data = vec![0u8; num_labels as usize];
-    label_file.read_exact(&mut label_data)?;
+        (n, rows * cols),
+        raw_images.into_iter().map(|x| x as f32 / 255.0).collect(),
+    ).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     let labels = Array2::from_shape_vec(
-        (num_labels as usize, 10),
-        label_data
-            .into_iter()
-            .flat_map(|label| {
-                let mut one_hot = vec![0.0f32; 10];
-                one_hot[label as usize] = 1.0;
-                one_hot
-            })
-            .collect(),
-    )
-    .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        (n, 10),
+        raw_labels.into_iter().flat_map(|l| {
+            let mut oh = [0.0f32; 10];
+            oh[l as usize] = 1.0;
+            oh
+        }).collect(),
+    ).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     Ok((images, labels))
 }
 
 fn main() {
+    let data_dir   = PathBuf::from("./examples/mnist/data");
     let model_path = "./examples/mnist/mnist_model_cpu.bin";
 
     let mut nn: MnistNetwork = if PathBuf::from(model_path).exists() {
@@ -76,35 +111,18 @@ fn main() {
         NeuralNetwork::new(Layers![dense_layer_1, dense_layer_2], CrossEntropy)
     };
 
-    let (images, labels) = match load_mnist_data(
-        PathBuf::from("./examples/mnist/train-images.idx3-ubyte"),
-        PathBuf::from("./examples/mnist/train-labels.idx1-ubyte"),
-    ) {
-        Ok(data) => data,
-        Err(e) => {
-            eprintln!("Error loading MNIST training data: {}", e);
-            return;
-        }
-    };
-
+    let (images, labels) = load_mnist(&data_dir, "train")
+        .expect("Failed to load training data");
     println!("Loaded {} training images", images.shape()[0]);
-    println!("\nTraining with batch size 1024...");
-    let sgd = SGD::new(0.01);
-    nn.train(images, labels, sgd, 10, 1024);
+
+    println!("\nTraining with batch size 32...");
+    nn.train(images, labels, SGD::new(0.01), 100, 32);
 
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");
 
-    let (test_images, test_labels) = match load_mnist_data(
-        PathBuf::from("./examples/mnist/t10k-images.idx3-ubyte"),
-        PathBuf::from("./examples/mnist/t10k-labels.idx1-ubyte"),
-    ) {
-        Ok(data) => data,
-        Err(e) => {
-            eprintln!("Error loading MNIST test data: {}", e);
-            return;
-        }
-    };
+    let (test_images, test_labels) = load_mnist(&data_dir, "t10k")
+        .expect("Failed to load test data");
 
     let acc = accuracy(&mut nn, test_images, test_labels);
     println!("\nTest accuracy: {:.2}%", acc * 100.0);
