@@ -9,11 +9,13 @@ pub use gpu::WgpuBackend;
 use ndarray::{Dimension, RemoveAxis};
 
 #[cfg(not(any(feature = "cpu", feature = "gpu")))]
-compile_error!(r#"
+compile_error!(
+    r#"
 No backend feature enabled. Add one to your Cargo.toml:
 
     meuron = { version = "^0.2.0", features = ["cpu"] }
-"#);
+"#
+);
 
 #[cfg(all(feature = "cpu", feature = "gpu"))]
 compile_error!(
