@@ -38,35 +38,36 @@ fn make_bind_group(
 }
 
 pub fn dispatch_1d(
-    ctx:      &Arc<GpuContext>,
+    ctx: &Arc<GpuContext>,
     pipeline: &wgpu::ComputePipeline,
-    entries:  &[wgpu::BindGroupEntry],
-    count:    u32,
+    entries: &[wgpu::BindGroupEntry],
+    count: u32,
 ) {
     let bg = make_bind_group(ctx, pipeline, entries);
     ctx.with_encoder(|enc| {
         let mut pass = enc.begin_compute_pass(&Default::default());
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &bg, &[]);
-        pass.dispatch_workgroups((count + 255) / 256, 1, 1);
+        pass.dispatch_workgroups(count.div_ceil(256), 1, 1);
     });
 }
 
 pub fn dispatch_3d(
-    ctx:      &Arc<GpuContext>,
+    ctx: &Arc<GpuContext>,
     pipeline: &wgpu::ComputePipeline,
-    entries:  &[wgpu::BindGroupEntry],
-    x: u32, y: u32, z: u32,
+    entries: &[wgpu::BindGroupEntry],
+    x: u32,
+    y: u32,
+    z: u32,
 ) {
     let bg = make_bind_group(ctx, pipeline, entries);
     ctx.with_encoder(|enc| {
         let mut pass = enc.begin_compute_pass(&Default::default());
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &bg, &[]);
-        pass.dispatch_workgroups((x + 7) / 8, (y + 7) / 8, z);
+        pass.dispatch_workgroups(x.div_ceil(8), y.div_ceil(8), z);
     });
 }
-
 
 pub fn binop<D: Dimension>(a: &GpuTensor<D>, b: &GpuTensor<D>, op: u32) -> GpuTensor<D> {
     let ctx = a.ctx.clone();

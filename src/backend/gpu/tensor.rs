@@ -38,9 +38,9 @@ impl<D: Dimension> GpuTensor<D> {
 
         let byte_size = (self.size * 4) as u64;
         let staging = self.ctx.device.create_buffer(&wgpu::BufferDescriptor {
-            label:              None,
-            size:               byte_size,
-            usage:              wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            label: None,
+            size: byte_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
         let mut enc = self.ctx.device.create_command_encoder(&Default::default());
@@ -51,14 +51,13 @@ impl<D: Dimension> GpuTensor<D> {
         slice.map_async(wgpu::MapMode::Read, |_| {});
         let _ = self.ctx.device.poll(wgpu::PollType::Wait {
             submission_index: Some(si),
-            timeout:          None,
+            timeout: None,
         });
 
         let data = cast_slice::<u8, f32>(&slice.get_mapped_range()).to_vec();
         staging.unmap();
         ndarray::Array::from_shape_vec(self.shape.clone(), data).unwrap()
     }
-
 
     pub fn alloc_like(&self) -> wgpu::Buffer {
         self.ctx.device.create_buffer(&wgpu::BufferDescriptor {
@@ -85,7 +84,7 @@ impl<D: Dimension> GpuTensor<D> {
         slice.map_async(wgpu::MapMode::Read, |_| {});
         let _ = ctx.device.poll(wgpu::PollType::Wait {
             submission_index: Some(si),
-            timeout:          None,
+            timeout: None,
         });
 
         let data = cast_slice::<u8, f32>(&slice.get_mapped_range()).to_vec();

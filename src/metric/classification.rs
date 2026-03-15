@@ -1,7 +1,7 @@
+use crate::NeuralNetwork;
 use crate::backend::Backend;
 use crate::cost::Cost;
 use crate::layer::Layer;
-use crate::NeuralNetwork;
 use ndarray::{Array, Axis, Dimension};
 use serde::{Deserialize, Serialize};
 
@@ -25,11 +25,7 @@ where
     }
 }
 
-pub fn accuracy<B, N, I, T>(
-    network: &mut N,
-    test_data: I,
-    test_labels: T,
-) -> f32
+pub fn accuracy<B, N, I, T>(network: &mut N, test_data: I, test_labels: T) -> f32
 where
     B: Backend,
     N: Forward<B>,
@@ -62,5 +58,6 @@ where
         .iter()
         .zip(label_classes.iter())
         .filter(|(p, l)| (*p - *l).abs() < 0.5)
-        .count() as f32 / n as f32
+        .count() as f32
+        / n as f32
 }

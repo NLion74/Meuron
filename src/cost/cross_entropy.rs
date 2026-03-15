@@ -20,6 +20,8 @@ impl<B: Backend> Cost<B> for CrossEntropy {
         predicted: &B::Tensor<D>,
         target: &B::Tensor<D>,
     ) -> B::Tensor<D> {
-        B::sub(predicted, target)
+        let eps = 1e-15_f32;
+        let clipped = B::clamp(predicted, eps, 1.0 - eps);
+        B::div(&B::scale(target, -1.0), &clipped)
     }
 }

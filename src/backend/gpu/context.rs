@@ -1,12 +1,12 @@
 use super::shaders;
-use wgpu;
 use std::sync::Mutex;
+use wgpu;
 
 pub struct GpuContext {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub pipelines: GpuPipelines,
-    pub encoder:   Mutex<Option<wgpu::CommandEncoder>>,
+    pub encoder: Mutex<Option<wgpu::CommandEncoder>>,
 }
 
 impl GpuContext {
@@ -41,15 +41,14 @@ impl GpuContext {
             device,
             queue,
             pipelines,
-            encoder: Mutex::new(None)
+            encoder: Mutex::new(None),
         }
     }
 
     pub fn with_encoder<F: FnOnce(&mut wgpu::CommandEncoder)>(&self, f: F) {
         let mut guard = self.encoder.lock().unwrap();
-        let enc = guard.get_or_insert_with(|| {
-            self.device.create_command_encoder(&Default::default())
-        });
+        let enc =
+            guard.get_or_insert_with(|| self.device.create_command_encoder(&Default::default()));
         f(enc);
     }
 

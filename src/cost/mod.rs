@@ -5,10 +5,15 @@ use crate::backend::Backend;
 pub use binary_cross_entropy::BinaryCrossEntropy;
 pub use cross_entropy::CrossEntropy;
 pub use mse::MSE;
-use ndarray::Dimension;
+use ndarray::{Dimension, RemoveAxis};
 
 pub trait Cost<B: Backend> {
-    fn loss<D: Dimension>(&self, predicted: &B::Tensor<D>, target: &B::Tensor<D>) -> f32;
+    fn loss<D: Dimension + RemoveAxis>(
+        &self,
+        predicted: &B::Tensor<D>,
+        target: &B::Tensor<D>,
+    ) -> f32;
+
     fn gradient<D: Dimension>(
         &self,
         predicted: &B::Tensor<D>,

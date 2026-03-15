@@ -23,8 +23,9 @@ jobs:
             - name: Verify (clippy, tests)
               run: |
                   cargo fmt --all -- --check
-                  cargo clippy --all-targets -- -D warnings
-                  cargo test --release --no-default-features --features gpu -- gpu_ops_parity mnist_gpu_parity --nocapture
+                  cargo clippy --all-targets --no-default-features --features cpu -- -D warnings
+                  cargo test --release --no-default-features --features cpu --all-targets
+                  cargo test --release --no-default-features --features gpu --all-targets --no-run
 
             - name: Publish
               env:
