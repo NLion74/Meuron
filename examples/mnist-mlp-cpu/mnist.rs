@@ -67,7 +67,7 @@ fn load_mnist_data(
 }
 
 fn main() {
-    let model_path = "mnist_model.bin";
+    let model_path = "./examples/mnist-mlp-cpu/mnist_model.bin";
 
     let mut nn: MnistNetwork = if PathBuf::from(model_path).exists() {
         println!("Loading existing model...");
@@ -80,8 +80,8 @@ fn main() {
     };
 
     let (images, labels) = match load_mnist_data(
-        PathBuf::from("./train-images.idx3-ubyte"),
-        PathBuf::from("./train-labels.idx1-ubyte"),
+        PathBuf::from("./examples/mnist-mlp-cpu/train-images.idx3-ubyte"),
+        PathBuf::from("./examples/mnist-mlp-cpu/train-labels.idx1-ubyte"),
     ) { 
         Ok(data) => data,
         Err(e) => { eprintln!("Error loading MNIST training data: {}", e); return; }

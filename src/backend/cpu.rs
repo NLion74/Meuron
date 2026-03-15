@@ -4,9 +4,9 @@ use ndarray_rand::rand_distr::Uniform;
 use crate::backend::Backend;
 
 #[derive(Clone)]
-pub struct NdarrayBackend;
+pub struct CPUBackend;
 
-impl Backend for NdarrayBackend {
+impl Backend for CPUBackend {
     type Tensor<D: Dimension> = ArrayBase<OwnedRepr<f32>, D>;
 
     fn zeros<D: Dimension>(shape: D) -> Self::Tensor<D> {

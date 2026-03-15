@@ -1,18 +1,18 @@
 use ndarray::{ArrayBase, Axis, Ix2, OwnedRepr};
 use serde::{Deserialize, Serialize};
-use crate::backend::NdarrayBackend;
+use crate::backend::DefaultBackend;
 use crate::cost::Cost;
 use crate::layer::Layer;
 use crate::NeuralNetwork;
 
 pub fn accuracy<L, C>(
-    network: &mut NeuralNetwork<L, C, NdarrayBackend>,
+    network: &mut NeuralNetwork<L, C, DefaultBackend>,
     test_data: &ArrayBase<OwnedRepr<f32>, Ix2>,
     test_labels: &ArrayBase<OwnedRepr<f32>, Ix2>,
 ) -> f32
 where
-    L: Layer<NdarrayBackend, Input = Ix2, Output = Ix2> + Serialize + for<'de> Deserialize<'de>,
-    C: Cost<NdarrayBackend>,
+    L: Layer<DefaultBackend, Input = Ix2, Output = Ix2> + Serialize + for<'de> Deserialize<'de>,
+    C: Cost<DefaultBackend>,
 {
     let predictions = network.forward(test_data);
 

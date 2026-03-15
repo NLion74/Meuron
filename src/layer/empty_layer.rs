@@ -1,11 +1,11 @@
 use ndarray::Dimension;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
-use crate::backend::{Backend, NdarrayBackend};
+use crate::backend::{Backend, DefaultBackend};
 use crate::layer::Layer;
 
 #[derive(Serialize, Deserialize)]
-pub struct EmptyLayer<D, B: Backend = NdarrayBackend> {
+pub struct EmptyLayer<D, B: Backend = DefaultBackend> {
     _phantom: PhantomData<(D, B)>,
 }
 

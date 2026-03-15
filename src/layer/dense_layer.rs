@@ -2,7 +2,7 @@ use ndarray::{Ix1, Ix2};
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use crate::activation::Activation;
-use crate::backend::{Backend, NdarrayBackend};
+use crate::backend::{Backend, DefaultBackend};
 use crate::layer::Layer;
 use crate::optimizer::Optimizer;
 
@@ -11,7 +11,7 @@ use crate::optimizer::Optimizer;
     serialize = "A: Serialize, B::Tensor<Ix2>: Serialize, B::Tensor<Ix1>: Serialize",
     deserialize = "A: Deserialize<'de>, B::Tensor<Ix2>: Deserialize<'de>, B::Tensor<Ix1>: Deserialize<'de>"
 ))]
-pub struct DenseLayer<A, B: Backend = NdarrayBackend>
+pub struct DenseLayer<A, B: Backend = DefaultBackend>
 where
     A: Activation<B>,
 {

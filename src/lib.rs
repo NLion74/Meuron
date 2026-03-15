@@ -5,7 +5,7 @@ pub mod layer;
 pub mod metric;
 pub mod optimizer;
 
-pub use backend::NdarrayBackend;
+pub use backend::DefaultBackend;
 
 use crate::backend::Backend;
 use crate::cost::Cost;
@@ -18,7 +18,7 @@ use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::path::Path;
 
-pub struct NeuralNetwork<L, C, B: Backend = NdarrayBackend>
+pub struct NeuralNetwork<L, C, B: Backend = DefaultBackend>
 where
     L: Layer<B>,
 {

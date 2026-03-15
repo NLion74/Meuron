@@ -1,7 +1,34 @@
-pub mod ndarray_backend;
-pub use ndarray_backend::NdarrayBackend;
+pub mod cpu;
+pub use cpu::CPUBackend;
+
+// TODO: Add GPU backend using wgpu or another Rust GPU library.
+// #[cfg(feature = "gpu")]
+// pub mod gpu::GPUBackend;
+// #[cfg(feature = "gpu")]
+// pub use gpu::GPUBackend;
 
 use ndarray::{Dimension, RemoveAxis};
+
+#[cfg(not(any(feature = "cpu", feature = "gpu")))]
+compile_error!(
+    "No backend feature enabled. Add one to your Cargo.toml:\n\
+     meuron = { version = \"^0.2.0\", features = [\"cpu\"] }"
+);
+
+#[cfg(all(feature = "cpu", feature = "gpu"))]
+compile_error!(r#"
+Only one backend feature can be active at a time. Choose either "cpu" or "gpu":
+
+    meuron = { version = "^0.2.0", features = ["cpu"] }
+    meuron = { version = "^0.2.0", features = ["gpu"] }
+"#);
+
+
+#[cfg(feature = "cpu")]
+pub type DefaultBackend = CPUBackend;
+
+#[cfg(feature = "gpu")]
+pub type DefaultBackend = GPUBackend;
 
 pub trait Backend: Clone + 'static {
     type Tensor<D: Dimension>: Clone;
@@ -29,13 +56,11 @@ pub trait Backend: Clone + 'static {
         a: &Self::Tensor<D1>,
         b: &Self::Tensor<D2>,
     ) -> Self::Tensor<D1>;
-
     fn transpose<D: Dimension>(
         tensor: &Self::Tensor<D>,
         axis1: usize,
         axis2: usize,
     ) -> Self::Tensor<D>;
-
     fn broadcast_add<D1: Dimension, D2: Dimension>(
         a: &Self::Tensor<D1>,
         b: &Self::Tensor<D2>,
@@ -48,7 +73,6 @@ pub trait Backend: Clone + 'static {
     ) -> Self::Tensor<D>;
 
     fn assign<D: Dimension>(dst: &mut Self::Tensor<D>, src: Self::Tensor<D>);
-
     fn shape<D: Dimension>(tensor: &Self::Tensor<D>) -> Vec<usize>;
     fn len_of<D: Dimension>(tensor: &Self::Tensor<D>, axis: usize) -> usize;
     fn select<D: Dimension + RemoveAxis>(
