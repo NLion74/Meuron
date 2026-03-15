@@ -1,10 +1,10 @@
 [package]
 name = "meuron"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 authors = ["NLion74 <nlion@nlion.nl>"]
 license = "Unlicense"
-description = "A flexible and modular neural network library in Rust"
+description = "Meuron is a modular neural network library written in rust for training simple neural networks."
 repository = "https://github.com/NLion74/Meuron"
 homepage = "https://github.com/NLion74/Meuron"
 documentation = "https://github.com/NLion74/Meuron/blob/master/README.md"
