@@ -117,8 +117,8 @@ fn main() {
     let (images, labels) = load_mnist(&data_dir, "train").expect("Failed to load training data");
     println!("Loaded {} training images", images.shape()[0]);
 
-    println!("\nTraining with batch size 32...");
-    nn.train(images, labels, SGD::new(0.01), 100, 32);
+    println!("\nTraining with batch size 256...");
+    nn.train(images, labels, SGD::new(0.01), 25, 256);
 
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");

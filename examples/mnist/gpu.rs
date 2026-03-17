@@ -111,7 +111,7 @@ fn main() {
         NeuralNetwork::load(model_path, CrossEntropy).expect("Failed to load model")
     } else {
         println!("Creating new model...");
-        let dense_layer_1 = DenseLayer::new(28 * 28, 500, ReLU);
+        let dense_layer_1 = DenseLayer::new(28 * 28, 100, ReLU);
         let dense_layer_2 = DenseLayer::new(500, 128, ReLU);
         let dense_layer_3 = DenseLayer::new(128, 10, Softmax);
         NeuralNetwork::new(
@@ -124,7 +124,7 @@ fn main() {
     println!("Loaded {} training images", images.shape()[0]);
 
     println!("\nTraining with batch size 1024...");
-    nn.train(images, labels, SGD::new(0.01), 100, 1024);
+    nn.train(images, labels, SGD::new(0.01), 25, 1024);
 
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");
