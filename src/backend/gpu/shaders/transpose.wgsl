@@ -1,4 +1,4 @@
-// N-D axis-swap transpose — supports up to 6 dimensions.
+// N-D axis-swap transpose - supports up to 6 dimensions.
 struct Params {
     ndim:       u32,
     total:      u32,

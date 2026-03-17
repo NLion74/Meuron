@@ -4,137 +4,62 @@ pub mod cost;
 pub mod layer;
 pub mod metric;
 pub mod optimizer;
+pub mod serialization;
+pub mod train;
 
+pub use activation::{ReLU, Sigmoid, Softmax, Tanh};
 pub use backend::DefaultBackend;
+pub use cost::{BinaryCrossEntropy, CrossEntropy, MSE};
+pub use layer::DenseLayer;
+pub use metric::classification::accuracy;
+pub use optimizer::SGD;
+pub use train::{PrintCallback, TrainCallback, TrainOptions};
 
 use crate::backend::Backend;
-use crate::cost::Cost;
 use crate::layer::Layer;
-use crate::optimizer::Optimizer;
-use ndarray::RemoveAxis;
-use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::{Read, Write};
+use ndarray::{Array, Dimension};
 use std::marker::PhantomData;
-use std::path::Path;
 
 pub struct NeuralNetwork<L, C, B: Backend = DefaultBackend>
 where
     L: Layer<B>,
 {
-    pub layers: L,
-    pub cost: C,
-    _backend: PhantomData<B>,
+    pub layers:          L,
+    pub cost:            C,
+    pub(crate) _backend: PhantomData<B>,
 }
 
 impl<L, C, B> NeuralNetwork<L, C, B>
 where
     B: Backend,
-    L: Layer<B> + Serialize + for<'de> Deserialize<'de>,
-    C: Cost<B>,
+    L: Layer<B>,
 {
     pub fn new(layers: L, cost: C) -> Self {
-        NeuralNetwork {
-            layers,
-            cost,
-            _backend: PhantomData,
-        }
+        NeuralNetwork { layers, cost, _backend: PhantomData }
     }
 
-    pub fn save<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
-        let encoded = postcard::to_allocvec(&self.layers)
-            .map_err(|e| std::io::Error::other(e.to_string()))?;
-        let mut file = File::create(path)?;
-        file.write_all(&encoded)?;
-        Ok(())
-    }
-
-    pub fn load<P: AsRef<Path>>(path: P, cost: C) -> std::io::Result<Self> {
-        let mut file = File::open(path)?;
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)?;
-        let layers: L =
-            postcard::from_bytes(&buffer).map_err(|e| std::io::Error::other(e.to_string()))?;
-        Ok(NeuralNetwork {
-            layers,
-            cost,
-            _backend: PhantomData,
-        })
-    }
-
-    pub fn forward(&mut self, input: &B::Tensor<L::Input>) -> B::Tensor<L::Output> {
-        self.layers.forward(input)
-    }
-
-    pub fn backward(&mut self, grad_output: &B::Tensor<L::Output>) -> B::Tensor<L::Input> {
-        self.layers.backward(grad_output)
-    }
-
-    pub fn train<O, I, T>(
-        &mut self,
-        inputs: I,
-        targets: T,
-        mut optimizer: O,
-        epochs: usize,
-        batch_size: usize,
-    ) -> Vec<f32>
+    pub fn predict<D>(&mut self, input: Array<f32, D>) -> Array<f32, L::Output>
     where
-        O: Optimizer<B>,
-        I: Into<B::Tensor<L::Input>>,
-        T: Into<B::Tensor<L::Output>>,
-        L::Input: RemoveAxis,
-        L::Output: RemoveAxis,
+        D: Dimension,
+        Array<f32, D>: Into<B::Tensor<L::Input>>,
     {
-        use ndarray::Axis;
-        use rand::rng;
-        use rand::seq::SliceRandom;
+        B::to_array(&self.layers.forward(&input.into()))
+    }
 
-        let inputs = inputs.into();
-        let targets = targets.into();
+    #[inline]
+    pub(crate) fn forward<I>(&mut self, input: I) -> B::Tensor<L::Output>
+    where
+        I: Into<B::Tensor<L::Input>>,
+    {
+        self.layers.forward(&input.into())
+    }
 
-        let num_samples = B::len_of(&inputs, 0);
-        assert_eq!(num_samples, B::len_of(&targets, 0), "batch size mismatch");
-
-        let inputs_cpu = B::to_array(&inputs);
-        let targets_cpu = B::to_array(&targets);
-
-        let mut losses = Vec::with_capacity(epochs);
-
-        for epoch in 0..epochs {
-            let mut total_loss = 0.0;
-            let mut batch_count = 0;
-
-            let mut indices: Vec<usize> = (0..num_samples).collect();
-            indices.shuffle(&mut rng());
-
-            for batch_start in (0..num_samples).step_by(batch_size) {
-                let batch_end = (batch_start + batch_size).min(num_samples);
-                let batch_indices = &indices[batch_start..batch_end];
-
-                let batch_input = B::from_array(inputs_cpu.select(Axis(0), batch_indices));
-                let batch_target = B::from_array(targets_cpu.select(Axis(0), batch_indices));
-
-                let output = self.forward(&batch_input);
-                total_loss += self.cost.loss(&output, &batch_target);
-
-                let grad = self.cost.gradient(&output, &batch_target);
-                self.backward(&grad);
-                self.layers.update(&mut optimizer);
-
-                B::flush();
-                batch_count += 1;
-            }
-
-            println!(
-                "Epoch {}/{}: Loss = {:.6}",
-                epoch + 1,
-                epochs,
-                total_loss / batch_count as f32
-            );
-            losses.push(total_loss / batch_count as f32);
-        }
-
-        losses
+    #[inline]
+    pub(crate) fn backward<G>(&mut self, grad_output: G) -> B::Tensor<L::Input>
+    where
+        G: Into<B::Tensor<L::Output>>,
+    {
+        self.layers.backward(&grad_output.into())
     }
 }
 

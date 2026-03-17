@@ -4,6 +4,7 @@ use meuron::cost::CrossEntropy;
 use meuron::layer::DenseLayer;
 use meuron::metric::classification::accuracy;
 use meuron::optimizer::SGD;
+use meuron::train::TrainOptions;
 use meuron::{Layers, NetworkType, NeuralNetwork};
 use ndarray::Array2;
 use std::fs::{self, File};
@@ -26,8 +27,7 @@ fn ensure_mnist(dir: &Path) -> io::Result<()> {
     fs::create_dir_all(dir)?;
 
     for &gz_name in FILES {
-        let decompressed_name = gz_name.strip_suffix(".gz").unwrap();
-        let dest = dir.join(decompressed_name);
+        let dest = dir.join(gz_name.strip_suffix(".gz").unwrap());
 
         if dest.exists() {
             continue;
@@ -63,12 +63,12 @@ fn load_mnist(dir: &Path, prefix: &str) -> io::Result<(Array2<f32>, Array2<f32>)
     let mut img_f = File::open(dir.join(format!("{}-images-idx3-ubyte", prefix)))?;
     let mut lbl_f = File::open(dir.join(format!("{}-labels-idx1-ubyte", prefix)))?;
 
-    let _magic = read_u32(&mut img_f)?;
+    let _ = read_u32(&mut img_f)?;
     let n = read_u32(&mut img_f)? as usize;
     let rows = read_u32(&mut img_f)? as usize;
     let cols = read_u32(&mut img_f)? as usize;
 
-    let _magic2 = read_u32(&mut lbl_f)?;
+    let _ = read_u32(&mut lbl_f)?;
     let n_labels = read_u32(&mut lbl_f)? as usize;
     assert_eq!(n, n_labels);
 
@@ -109,16 +109,25 @@ fn main() {
         NeuralNetwork::load(model_path, CrossEntropy).expect("Failed to load model")
     } else {
         println!("Creating new model...");
-        let dense_layer_1 = DenseLayer::new(28 * 28, 128, ReLU);
-        let dense_layer_2 = DenseLayer::new(128, 10, Softmax);
-        NeuralNetwork::new(Layers![dense_layer_1, dense_layer_2], CrossEntropy)
+        NeuralNetwork::new(
+            Layers![
+                DenseLayer::new(28 * 28, 128, ReLU),
+                DenseLayer::new(128, 10, Softmax)
+            ],
+            CrossEntropy,
+        )
     };
 
     let (images, labels) = load_mnist(&data_dir, "train").expect("Failed to load training data");
     println!("Loaded {} training images", images.shape()[0]);
 
-    println!("\nTraining with batch size 256...");
-    nn.train(images, labels, SGD::new(0.01), 25, 256);
+    println!("\nTraining...");
+    nn.train(
+        images,
+        labels,
+        SGD::new(0.01),
+        TrainOptions::new().epochs(25).batch_size(256),
+    );
 
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");

@@ -6,32 +6,13 @@ pub mod gpu;
 #[cfg(feature = "gpu")]
 pub use gpu::GPUBackend;
 
-use ndarray::{Dimension, RemoveAxis};
-
-#[cfg(not(any(feature = "cpu", feature = "gpu")))]
-compile_error!(
-    r#"
-No backend feature enabled. Add one to your Cargo.toml:
-
-    meuron = { version = "^0.2.0", features = ["cpu"] }
-"#
-);
-
-#[cfg(all(feature = "cpu", feature = "gpu"))]
-compile_error!(
-    r#"
-Only one backend feature can be active at a time. Choose either "cpu" or "gpu":
-
-    meuron = { version = "^0.2.0", features = ["cpu"] }
-    meuron = { version = "^0.2.0", features = ["gpu"] }
-"#
-);
-
-#[cfg(feature = "cpu")]
+#[cfg(not(feature = "gpu"))]
 pub type DefaultBackend = CPUBackend;
 
 #[cfg(feature = "gpu")]
 pub type DefaultBackend = GPUBackend;
+
+use ndarray::{Dimension, RemoveAxis};
 
 pub trait Backend: Clone + 'static {
     type Tensor<D: Dimension>: Clone;

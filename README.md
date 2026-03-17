@@ -20,10 +20,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 # CPU backend
-meuron = { version = "0.2", features = ["cpu"] }
+meuron = { version = "0.3.1", features = ["cpu"] }
 
 # GPU backend (requires WebGPU support)
-meuron = { version = "0.2", features = ["gpu"] }
+meuron = { version = "0.3.1", features = ["gpu"] }
 ```
 
 Only one backend can be active at a time.
@@ -33,41 +33,50 @@ Only one backend can be active at a time.
 ```rust
 use meuron::{
     NeuralNetwork, NetworkType, Layers,
-    layer::DenseLayer,
-    activation::{ReLU, Softmax},
-    cost::CrossEntropy,
-    optimizer::SGD,
+    DenseLayer, ReLU, Softmax, CrossEntropy, SGD,
 };
+use meuron::train::TrainOptions;
 use ndarray::Array2;
 
+type Net = NeuralNetwork<
+    NetworkType![DenseLayer<ReLU>, DenseLayer<ReLU>, DenseLayer<Softmax>],
+    CrossEntropy,
+>;
+
 fn main() {
-    let layer1 = DenseLayer::new(784, 128, ReLU);
-    let layer2 = DenseLayer::new(128, 64,  ReLU);
-    let layer3 = DenseLayer::new(64,  10,  Softmax);
-
-    type Net = NeuralNetwork<
-        NetworkType!(
-            DenseLayer<ReLU>,
-            DenseLayer<ReLU>,
-            DenseLayer<Softmax>
-        ),
-        CrossEntropy,
-    >;
-
     let mut nn: Net = NeuralNetwork::new(
-        Layers![layer1, layer2, layer3],
+        Layers![
+            DenseLayer::new(784, 128, ReLU),
+            DenseLayer::new(128, 64,  ReLU),
+            DenseLayer::new(64,  10,  Softmax),
+        ],
         CrossEntropy,
     );
 
-    // Train the network
-    nn.train(train_data, train_labels, SGD::new(0.01), 10, 32);
+    nn.train(
+        train_data,
+        train_labels,
+        SGD::new(0.01),
+        TrainOptions::new()
+            .epochs(25)
+            .batch_size(256)
+            .validation_split(0.1),
+    );
 
-    // Save the model
     nn.save("model.bin").unwrap();
-
-    // Load later
     let loaded: Net = NeuralNetwork::load("model.bin", CrossEntropy).unwrap();
 }
+```
+
+A custom callback receives the epoch, total, training loss, and optional validation loss:
+
+```
+TrainOptions::new()
+    .epochs(25)
+    .callback(|epoch, total, loss, val_loss| {
+        println!("{epoch}/{total}  loss={loss:.4}");
+        true // return false to stop early
+    })
 ```
 
 ### Available Components
@@ -107,7 +116,13 @@ cargo run --example mnist-mlp-cpu --release
 ```
 
 ```
-cargo run --example mnist-mlp-gpu --release --no-default-features --features gpu
+cargo run --example mnist-mlp-gpu --release --features gpu
+```
+
+For a more advanced UI based example see:
+
+```
+cargo run --example mnist-draw --release --features gpu
 ```
 
 ## Contributing

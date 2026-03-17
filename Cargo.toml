@@ -22,9 +22,8 @@ include = [
 
 
 [features]
-default = ["cpu"]
-cpu = []
-gpu = ["dep:wgpu", "dep:bytemuck", "dep:pollster"]
+default = []
+gpu     = ["dep:wgpu", "dep:pollster", "dep:bytemuck"]
 
 [dependencies]
 ndarray = { version = "0.17.2", features = ["serde"] }
@@ -39,15 +38,22 @@ pollster = { version = "0.4.0", optional = true }
 [dev-dependencies]
 ureq = "3.2.0"
 flate2 = "1.1.9"
+egui = "0.33.3"
+egui_plot  = "0.34.1"
+eframe = "0.33.3"
 
 [[example]]
 name = "mnist-mlp-cpu"
 path = "examples/mnist/cpu.rs"
-required-features = ["cpu"]
 
 [[example]]
 name = "mnist-mlp-gpu"
 path = "examples/mnist/gpu.rs"
+required-features = ["gpu"]
+
+[[example]]
+name              = "mnist-draw"
+path              = "examples/mnist/draw.rs"
 required-features = ["gpu"]
 
 [lib]

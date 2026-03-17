@@ -21,7 +21,7 @@ where
     type Output = L::Output;
 
     fn run(&mut self, x: &B::Tensor<L::Input>) -> B::Tensor<L::Output> {
-        self.forward(x)
+        self.forward(x.clone())
     }
 }
 
