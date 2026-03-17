@@ -10,10 +10,8 @@ use std::fs::{self, File};
 use std::io::{self, BufWriter, Read};
 use std::path::{Path, PathBuf};
 
-type MnistNetwork = NeuralNetwork<
-    NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>],
-    CrossEntropy,
->;
+type MnistNetwork =
+    NeuralNetwork<NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>], CrossEntropy>;
 
 const MIRROR: &str = "https://systemds.apache.org/assets/datasets/mnist";
 
@@ -43,7 +41,7 @@ fn ensure_mnist(dir: &Path) -> io::Result<()> {
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
         let mut body = response.into_body();
-        let mut gz  = GzDecoder::new(body.as_reader());
+        let mut gz = GzDecoder::new(body.as_reader());
         let mut out = BufWriter::new(File::create(&dest)?);
         io::copy(&mut gz, &mut out)?;
 
@@ -66,11 +64,11 @@ fn load_mnist(dir: &Path, prefix: &str) -> io::Result<(Array2<f32>, Array2<f32>)
     let mut lbl_f = File::open(dir.join(format!("{}-labels-idx1-ubyte", prefix)))?;
 
     let _magic = read_u32(&mut img_f)?;
-    let n      = read_u32(&mut img_f)? as usize;
-    let rows   = read_u32(&mut img_f)? as usize;
-    let cols   = read_u32(&mut img_f)? as usize;
+    let n = read_u32(&mut img_f)? as usize;
+    let rows = read_u32(&mut img_f)? as usize;
+    let cols = read_u32(&mut img_f)? as usize;
 
-    let _magic2  = read_u32(&mut lbl_f)?;
+    let _magic2 = read_u32(&mut lbl_f)?;
     let n_labels = read_u32(&mut lbl_f)? as usize;
     assert_eq!(n, n_labels);
 
@@ -83,22 +81,27 @@ fn load_mnist(dir: &Path, prefix: &str) -> io::Result<(Array2<f32>, Array2<f32>)
     let images = Array2::from_shape_vec(
         (n, rows * cols),
         raw_images.into_iter().map(|x| x as f32 / 255.0).collect(),
-    ).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    )
+    .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     let labels = Array2::from_shape_vec(
         (n, 10),
-        raw_labels.into_iter().flat_map(|l| {
-            let mut oh = [0.0f32; 10];
-            oh[l as usize] = 1.0;
-            oh
-        }).collect(),
-    ).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        raw_labels
+            .into_iter()
+            .flat_map(|l| {
+                let mut oh = [0.0f32; 10];
+                oh[l as usize] = 1.0;
+                oh
+            })
+            .collect(),
+    )
+    .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     Ok((images, labels))
 }
 
 fn main() {
-    let data_dir   = PathBuf::from("./examples/mnist/data");
+    let data_dir = PathBuf::from("./examples/mnist/data");
     let model_path = "./examples/mnist/mnist_model_cpu.bin";
 
     let mut nn: MnistNetwork = if PathBuf::from(model_path).exists() {
@@ -111,8 +114,7 @@ fn main() {
         NeuralNetwork::new(Layers![dense_layer_1, dense_layer_2], CrossEntropy)
     };
 
-    let (images, labels) = load_mnist(&data_dir, "train")
-        .expect("Failed to load training data");
+    let (images, labels) = load_mnist(&data_dir, "train").expect("Failed to load training data");
     println!("Loaded {} training images", images.shape()[0]);
 
     println!("\nTraining with batch size 32...");
@@ -121,8 +123,8 @@ fn main() {
     println!("\nSaving model to {}...", model_path);
     nn.save(model_path).expect("Failed to save model");
 
-    let (test_images, test_labels) = load_mnist(&data_dir, "t10k")
-        .expect("Failed to load test data");
+    let (test_images, test_labels) =
+        load_mnist(&data_dir, "t10k").expect("Failed to load test data");
 
     let acc = accuracy(&mut nn, test_images, test_labels);
     println!("\nTest accuracy: {:.2}%", acc * 100.0);
