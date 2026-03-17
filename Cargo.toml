@@ -1,6 +1,6 @@
 [package]
 name = "meuron"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 authors = ["NLion74 <nlion@nlion.nl>"]
 license = "Unlicense"
