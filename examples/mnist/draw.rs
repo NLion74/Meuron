@@ -28,10 +28,7 @@ const FILES: &[&str] = &[
     "t10k-labels-idx1-ubyte.gz",
 ];
 
-type MnistNet = NeuralNetwork<
-    NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>],
-    CrossEntropy,
->;
+type MnistNet = NeuralNetwork<NetworkType![DenseLayer<ReLU>, DenseLayer<Softmax>], CrossEntropy>;
 
 #[derive(Clone)]
 struct TrainConfig {
@@ -393,9 +390,11 @@ fn draw_idle(ui: &mut egui::Ui, app: &mut App) {
         if PathBuf::from(MODEL_PATH).exists() {
             ui.add_space(10.0);
             ui.label(
-                RichText::new("A saved model exists and will be overwritten on the next training run.")
-                    .size(11.0)
-                    .color(Color32::from_gray(95)),
+                RichText::new(
+                    "A saved model exists and will be overwritten on the next training run.",
+                )
+                .size(11.0)
+                .color(Color32::from_gray(95)),
             );
         }
     });
@@ -479,9 +478,12 @@ fn draw_training(ui: &mut egui::Ui, app: &mut App) {
 
                     if has_val && !val_pts.is_empty() {
                         plot_ui.line(
-                            egui_plot::Line::new("Validation", egui_plot::PlotPoints::from(val_pts))
-                                .color(Color32::from_rgb(255, 160, 50))
-                                .width(2.0),
+                            egui_plot::Line::new(
+                                "Validation",
+                                egui_plot::PlotPoints::from(val_pts),
+                            )
+                            .color(Color32::from_rgb(255, 160, 50))
+                            .width(2.0),
                         );
                     }
                 });

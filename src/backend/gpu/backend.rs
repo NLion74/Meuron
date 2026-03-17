@@ -47,18 +47,12 @@ impl Backend for GPUBackend {
     }
 
     fn random_uniform<D: Dimension>(shape: D, low: f32, high: f32) -> GpuTensor<D> {
-        let arr = ndarray::Array::random(
-            shape,
-            Uniform::new(low, high).unwrap(),
-        );
+        let arr = ndarray::Array::random(shape, Uniform::new(low, high).unwrap());
         GpuTensor::upload(arr, GpuContext::global())
     }
 
     fn random_normal<D: Dimension>(shape: D, mean: f32, std: f32) -> GpuTensor<D> {
-        let arr = ndarray::Array::random(
-            shape,
-            Normal::new(mean, std).unwrap(),
-        );
+        let arr = ndarray::Array::random(shape, Normal::new(mean, std).unwrap());
         GpuTensor::upload(arr, GpuContext::global())
     }
 

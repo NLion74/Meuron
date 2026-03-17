@@ -1,21 +1,21 @@
 pub mod activation;
 pub mod backend;
 pub mod cost;
+pub mod initializer;
 pub mod layer;
 pub mod metric;
 pub mod optimizer;
-pub mod initializer;
 pub mod serialization;
 pub mod train;
 
 pub use activation::{ReLU, Sigmoid, Softmax, Tanh};
 pub use backend::DefaultBackend;
 pub use cost::{BinaryCrossEntropy, CrossEntropy, MSE};
+pub use initializer::{Constant, HeNormal, Initializer, XavierUniform, Zeros};
 pub use layer::DenseLayer;
 pub use metric::classification::accuracy;
 pub use optimizer::{SGD, SGDMomentum};
 pub use train::{PrintCallback, TrainCallback, TrainOptions};
-pub use initializer::{Constant, HeNormal, Initializer, XavierUniform, Zeros};
 
 use crate::backend::Backend;
 use crate::layer::Layer;

@@ -1,10 +1,10 @@
 use flate2::read::GzDecoder;
 use meuron::activation::{ReLU, Softmax};
 use meuron::cost::CrossEntropy;
+use meuron::initializer::{HeNormal, XavierUniform, Zeros};
 use meuron::layer::DenseLayer;
 use meuron::metric::classification::accuracy;
 use meuron::optimizer::SGDMomentum;
-use meuron::initializer::{HeNormal, Zeros, XavierUniform};
 use meuron::train::TrainOptions;
 use meuron::{Layers, NetworkType, NeuralNetwork};
 use ndarray::Array2;
@@ -109,7 +109,7 @@ fn main() {
 
     let mut nn: MnistNetwork = if PathBuf::from(model_path).exists() {
         println!("Loading existing model...");
-        NeuralNetwork::load(model_path, MSE).expect("Failed to load model")
+        NeuralNetwork::load(model_path, CrossEntropy).expect("Failed to load model")
     } else {
         println!("Creating new model...");
         NeuralNetwork::new(

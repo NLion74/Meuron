@@ -6,6 +6,7 @@ use common::assert_close;
 use meuron::activation::{ReLU, Softmax};
 use meuron::backend::{Backend, CPUBackend, GPUBackend, unary_ops};
 use meuron::cost::{Cost, CrossEntropy};
+use meuron::initializer::{HeNormal, XavierUniform, Zeros};
 use meuron::layer::{DenseLayer, Layer};
 use meuron::optimizer::{SGD, SGDMomentum};
 use meuron::{Layers, NetworkType, NeuralNetwork};
@@ -65,11 +66,11 @@ fn dense_forward_parity() {
     let b = arr1(&[0.1_f32, -0.2, 0.3]);
     let x = arr2(&[[1.0_f32, 0.5, -0.3, 0.2], [0.0, 1.0, 0.0, -1.0]]);
 
-    let mut cpu_l = DenseLayer::<ReLU, CPUBackend>::new(4, 3, ReLU);
+    let mut cpu_l = DenseLayer::<ReLU, CPUBackend>::new(4, 3, ReLU, HeNormal, Zeros);
     CPUBackend::assign(&mut cpu_l.weights, CPUBackend::from_array(w.clone()));
     CPUBackend::assign(&mut cpu_l.biases, CPUBackend::from_array(b.clone()));
 
-    let mut gpu_l = DenseLayer::<ReLU, GPUBackend>::new(4, 3, ReLU);
+    let mut gpu_l = DenseLayer::<ReLU, GPUBackend>::new(4, 3, ReLU, HeNormal, Zeros);
     GPUBackend::assign(&mut gpu_l.weights, GPUBackend::from_array(w));
     GPUBackend::assign(&mut gpu_l.biases, GPUBackend::from_array(b));
 
@@ -91,11 +92,11 @@ fn dense_backward_parity() {
     let x = arr2(&[[1.0_f32, 0.5, -0.3], [0.0, 1.0, 0.0]]);
     let g = arr2(&[[0.3_f32, -0.1], [-0.2, 0.4]]);
 
-    let mut cpu_l = DenseLayer::<ReLU, CPUBackend>::new(3, 2, ReLU);
+    let mut cpu_l = DenseLayer::<ReLU, CPUBackend>::new(3, 2, ReLU, HeNormal, Zeros);
     CPUBackend::assign(&mut cpu_l.weights, CPUBackend::from_array(w.clone()));
     CPUBackend::assign(&mut cpu_l.biases, CPUBackend::from_array(b.clone()));
 
-    let mut gpu_l = DenseLayer::<ReLU, GPUBackend>::new(3, 2, ReLU);
+    let mut gpu_l = DenseLayer::<ReLU, GPUBackend>::new(3, 2, ReLU, HeNormal, Zeros);
     GPUBackend::assign(&mut gpu_l.weights, GPUBackend::from_array(w));
     GPUBackend::assign(&mut gpu_l.biases, GPUBackend::from_array(b));
 
@@ -158,15 +159,15 @@ type TwoLayerGpu = NeuralNetwork<
 fn cpu_gpu_pair() -> (TwoLayerCpu, TwoLayerGpu) {
     let cpu = NeuralNetwork::new(
         Layers![
-            DenseLayer::<ReLU, CPUBackend>::new(4, 5, ReLU),
-            DenseLayer::<Softmax, CPUBackend>::new(5, 3, Softmax)
+            DenseLayer::<ReLU, CPUBackend>::new(4, 5, ReLU, HeNormal, Zeros),
+            DenseLayer::<Softmax, CPUBackend>::new(5, 3, Softmax, XavierUniform, Zeros)
         ],
         CrossEntropy,
     );
     let mut gpu = NeuralNetwork::new(
         Layers![
-            DenseLayer::<ReLU, GPUBackend>::new(4, 5, ReLU),
-            DenseLayer::<Softmax, GPUBackend>::new(5, 3, Softmax)
+            DenseLayer::<ReLU, GPUBackend>::new(4, 5, ReLU, HeNormal, Zeros),
+            DenseLayer::<Softmax, GPUBackend>::new(5, 3, Softmax, XavierUniform, Zeros)
         ],
         CrossEntropy,
     );
