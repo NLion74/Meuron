@@ -7,7 +7,7 @@ use meuron::activation::{ReLU, Softmax};
 use meuron::backend::{Backend, CPUBackend, GPUBackend, unary_ops};
 use meuron::cost::{Cost, CrossEntropy};
 use meuron::layer::{DenseLayer, Layer};
-use meuron::optimizer::SGD;
+use meuron::optimizer::{SGD, SGDMomentum};
 use meuron::{Layers, NetworkType, NeuralNetwork};
 use ndarray::{arr1, arr2};
 
@@ -85,7 +85,6 @@ fn dense_forward_parity() {
 fn dense_backward_parity() {
     use meuron::activation::ReLU;
     use meuron::layer::{DenseLayer, Layer};
-    use meuron::optimizer::SGD;
 
     let w = arr2(&[[0.5_f32, -0.3], [-0.1, 0.4], [0.7, -0.5]]);
     let b = arr1(&[0.1_f32, -0.2]);
@@ -107,8 +106,8 @@ fn dense_backward_parity() {
     let gpu_dx = GPUBackend::to_array(&gpu_l.backward(&GPUBackend::from_array(g)));
     assert_close("backward_dx", &cpu_dx, &gpu_dx, 1e-4);
 
-    cpu_l.update(&mut SGD::new(0.1));
-    gpu_l.update(&mut SGD::new(0.1));
+    cpu_l.update(&mut SGDMomentum::new(0.1, 0.9));
+    gpu_l.update(&mut SGDMomentum::new(0.1, 0.9));
     assert_close(
         "weights_after_update",
         &CPUBackend::to_array(&cpu_l.weights),
@@ -220,8 +219,10 @@ fn two_layer_forward_backward_update_parity() {
     let x = tiny_inputs();
     let y = tiny_targets();
 
-    let cpu_out = cpu.forward(&CPUBackend::from_array(x.clone()));
-    let gpu_out_t = gpu.forward(&GPUBackend::from_array(x.clone()));
+    let x_cpu = CPUBackend::from_array(x.clone());
+    let x_gpu = GPUBackend::from_array(x.clone());
+    let cpu_out = cpu.forward(x_cpu);
+    let gpu_out_t = gpu.forward(x_gpu);
     let gpu_out = GPUBackend::to_array(&gpu_out_t);
     assert_close(
         "two_layer_forward",
@@ -240,8 +241,8 @@ fn two_layer_forward_backward_update_parity() {
         &gpu_out_t,
         &GPUBackend::from_array(y.clone()),
     );
-    let cpu_dx = cpu.backward(&cpu_grad);
-    let gpu_dx = gpu.backward(&gpu_grad);
+    let cpu_dx = cpu.backward(cpu_grad);
+    let gpu_dx = gpu.backward(gpu_grad);
     assert_close(
         "two_layer_backward_dx",
         &CPUBackend::to_array(&cpu_dx),
@@ -293,8 +294,8 @@ fn two_layer_multi_step_loss_trajectory_parity() {
     let mut gpu_losses = Vec::new();
 
     for _ in 0..5 {
-        let cpu_out = cpu.forward(&x_cpu);
-        let gpu_out = gpu.forward(&x_gpu);
+        let cpu_out = cpu.forward(x_cpu.clone());
+        let gpu_out = gpu.forward(x_gpu.clone());
 
         cpu_losses.push(<CrossEntropy as Cost<CPUBackend>>::loss(
             &cpu.cost, &cpu_out, &y_cpu,
@@ -306,10 +307,10 @@ fn two_layer_multi_step_loss_trajectory_parity() {
         let cpu_grad = <CrossEntropy as Cost<CPUBackend>>::gradient(&cpu.cost, &cpu_out, &y_cpu);
         let gpu_grad = <CrossEntropy as Cost<GPUBackend>>::gradient(&gpu.cost, &gpu_out, &y_gpu);
 
-        cpu.backward(&cpu_grad);
-        gpu.backward(&gpu_grad);
-        cpu.layers.update(&mut SGD::new(0.05));
-        gpu.layers.update(&mut SGD::new(0.05));
+        cpu.backward(cpu_grad);
+        gpu.backward(gpu_grad);
+        cpu.layers.update(&mut SGDMomentum::new(0.05, 0.9));
+        gpu.layers.update(&mut SGDMomentum::new(0.05, 0.9));
         GPUBackend::flush();
     }
 

@@ -1,8 +1,8 @@
+use crate::NeuralNetwork;
 use crate::backend::Backend;
 use crate::cost::Cost;
 use crate::layer::Layer;
 use crate::optimizer::Optimizer;
-use crate::NeuralNetwork;
 use ndarray::RemoveAxis;
 use serde::{Deserialize, Serialize};
 

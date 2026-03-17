@@ -13,7 +13,13 @@ impl SGD {
 }
 
 impl<B: Backend> Optimizer<B> for SGD {
-    fn update_param<D: Dimension>(&mut self, param: &mut B::Tensor<D>, grad: &B::Tensor<D>) {
+    fn update_param<D: Dimension + 'static>(
+        &mut self,
+        param: &mut B::Tensor<D>,
+        grad: &B::Tensor<D>,
+    ) where
+        B::Tensor<D>: 'static,
+    {
         let updated = B::sub(param, &B::scale(grad, self.learning_rate));
         B::assign(param, updated);
     }

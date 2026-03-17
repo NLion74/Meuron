@@ -1,5 +1,6 @@
 use crate::activation::Activation;
 use crate::backend::{Backend, DefaultBackend};
+use crate::initializer::Initializer;
 use crate::layer::Layer;
 use crate::optimizer::Optimizer;
 use ndarray::{Ix1, Ix2};
@@ -31,11 +32,20 @@ where
 }
 
 impl<A: Activation<B>, B: Backend> DenseLayer<A, B> {
-    pub fn new(input_size: usize, output_size: usize, activation: A) -> Self {
-        let scale = (2.0 / input_size as f32).sqrt();
+    pub fn new<IW, IB>(
+        input_size: usize,
+        output_size: usize,
+        activation: A,
+        weight_init: IW,
+        bias_init: IB,
+    ) -> Self
+    where
+        IW: Initializer<B>,
+        IB: Initializer<B>,
+    {
         DenseLayer {
-            weights: B::random_uniform(Ix2(input_size, output_size), -scale, scale),
-            biases: B::zeros(Ix1(output_size)),
+            weights: weight_init.init(Ix2(input_size, output_size)),
+            biases: bias_init.init(Ix1(output_size)),
             activation,
             last_input: None,
             last_z: None,

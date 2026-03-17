@@ -1,5 +1,6 @@
 use ndarray::{Axis, Dimension, RemoveAxis};
 use ndarray_rand::RandomExt;
+use ndarray_rand::rand_distr::{Normal, Uniform};
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
@@ -48,7 +49,15 @@ impl Backend for GPUBackend {
     fn random_uniform<D: Dimension>(shape: D, low: f32, high: f32) -> GpuTensor<D> {
         let arr = ndarray::Array::random(
             shape,
-            ndarray_rand::rand_distr::Uniform::new(low, high).unwrap(),
+            Uniform::new(low, high).unwrap(),
+        );
+        GpuTensor::upload(arr, GpuContext::global())
+    }
+
+    fn random_normal<D: Dimension>(shape: D, mean: f32, std: f32) -> GpuTensor<D> {
+        let arr = ndarray::Array::random(
+            shape,
+            Normal::new(mean, std).unwrap(),
         );
         GpuTensor::upload(arr, GpuContext::global())
     }

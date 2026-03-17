@@ -19,6 +19,7 @@ pub trait Backend: Clone + 'static {
 
     fn zeros<D: Dimension>(shape: D) -> Self::Tensor<D>;
     fn random_uniform<D: Dimension>(shape: D, low: f32, high: f32) -> Self::Tensor<D>;
+    fn random_normal<D: Dimension>(shape: D, mean: f32, std: f32) -> Self::Tensor<D>;
     fn from_array<D: Dimension>(array: ndarray::Array<f32, D>) -> Self::Tensor<D>;
     fn to_array<D: Dimension>(tensor: &Self::Tensor<D>) -> ndarray::Array<f32, D>;
 

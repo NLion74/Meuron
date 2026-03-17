@@ -4,6 +4,7 @@ pub mod cost;
 pub mod layer;
 pub mod metric;
 pub mod optimizer;
+pub mod initializer;
 pub mod serialization;
 pub mod train;
 
@@ -12,8 +13,9 @@ pub use backend::DefaultBackend;
 pub use cost::{BinaryCrossEntropy, CrossEntropy, MSE};
 pub use layer::DenseLayer;
 pub use metric::classification::accuracy;
-pub use optimizer::SGD;
+pub use optimizer::{SGD, SGDMomentum};
 pub use train::{PrintCallback, TrainCallback, TrainOptions};
+pub use initializer::{Constant, HeNormal, Initializer, XavierUniform, Zeros};
 
 use crate::backend::Backend;
 use crate::layer::Layer;
@@ -24,8 +26,8 @@ pub struct NeuralNetwork<L, C, B: Backend = DefaultBackend>
 where
     L: Layer<B>,
 {
-    pub layers:          L,
-    pub cost:            C,
+    pub layers: L,
+    pub cost: C,
     pub(crate) _backend: PhantomData<B>,
 }
 
@@ -35,7 +37,11 @@ where
     L: Layer<B>,
 {
     pub fn new(layers: L, cost: C) -> Self {
-        NeuralNetwork { layers, cost, _backend: PhantomData }
+        NeuralNetwork {
+            layers,
+            cost,
+            _backend: PhantomData,
+        }
     }
 
     pub fn predict<D>(&mut self, input: Array<f32, D>) -> Array<f32, L::Output>
@@ -47,7 +53,7 @@ where
     }
 
     #[inline]
-    pub(crate) fn forward<I>(&mut self, input: I) -> B::Tensor<L::Output>
+    pub fn forward<I>(&mut self, input: I) -> B::Tensor<L::Output>
     where
         I: Into<B::Tensor<L::Input>>,
     {
@@ -55,7 +61,7 @@ where
     }
 
     #[inline]
-    pub(crate) fn backward<G>(&mut self, grad_output: G) -> B::Tensor<L::Input>
+    pub fn backward<G>(&mut self, grad_output: G) -> B::Tensor<L::Input>
     where
         G: Into<B::Tensor<L::Output>>,
     {

@@ -4,6 +4,7 @@ use meuron::cost::CrossEntropy;
 use meuron::layer::DenseLayer;
 use meuron::metric::classification::accuracy;
 use meuron::optimizer::SGD;
+use meuron::initializer::{HeNormal, Zeros, XavierUniform};
 use meuron::train::TrainOptions;
 use meuron::{Layers, NetworkType, NeuralNetwork};
 use ndarray::Array2;
@@ -38,7 +39,7 @@ fn ensure_mnist(dir: &Path) -> io::Result<()> {
 
         let response = ureq::get(&url)
             .call()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| io::Error::other(e.to_string()))?;
 
         let mut body = response.into_body();
         let mut gz = GzDecoder::new(body.as_reader());
@@ -111,8 +112,8 @@ fn main() {
         println!("Creating new model...");
         NeuralNetwork::new(
             Layers![
-                DenseLayer::new(28 * 28, 128, ReLU),
-                DenseLayer::new(128, 10, Softmax)
+                DenseLayer::new(28 * 28, 128, ReLU, HeNormal, Zeros),
+                DenseLayer::new(128, 10, Softmax, XavierUniform, Zeros)
             ],
             CrossEntropy,
         )
