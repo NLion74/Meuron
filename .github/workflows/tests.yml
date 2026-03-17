@@ -6,7 +6,7 @@ on:
     pull_request:
 
 jobs:
-    verify:
+    tests:
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -20,9 +20,17 @@ jobs:
             - name: Cache cargo
               uses: Swatinem/rust-cache@v2
 
-            - name: Verify (fmt, clippy, tests)
-              run: |
-                  cargo fmt --all -- --check
-                  cargo clippy --all-targets --no-default-features --features cpu -- -D warnings
-                  cargo test --release --no-default-features --features cpu --all-targets
-                  cargo test --release --no-default-features --features gpu --all-targets --no-run
+            - name: Format
+              run: cargo fmt --all -- --check
+
+            - name: Clippy (default/CPU path)
+              run: cargo clippy --workspace --all-targets -- -D warnings
+
+            - name: Test (default/CPU path)
+              run: cargo test --workspace --release
+
+            - name: Clippy (GPU feature)
+              run: cargo clippy --workspace --all-targets --no-default-features --features gpu -- -D warnings
+
+            - name: Check (GPU feature)
+              run: cargo check --workspace --all-targets --no-default-features --features gpu
